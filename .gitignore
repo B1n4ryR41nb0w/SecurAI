@@ -3,3 +3,20 @@
 __pycache__/
 *.pyc
 
+venv/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+

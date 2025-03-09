@@ -1,0 +1,25 @@
+# Core dependencies
+crewai~=0.102.0
+langchain
+litellm
+
+# Smart contract analysis tools
+slither-analyzer
+py-solc-x
+mythril
+slither
+# Machine learning and classification
+transformers
+composio-core
+
+# Environment configuration
+python-dotenv
+
+pip~=24.3.1
+configparser~=7.2.0
+attrs~=25.1.0
+distro~=1.9.0
+wheel~=0.45.1
+cryptography~=44.0.2
+pillow~=11.1.0
+filelock~=3.17.0

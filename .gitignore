@@ -1,22 +1,20 @@
 .DS_Store
 .idea/
-__pycache__/
+**pycache**/
 *.pyc
-
-venv/
-
-# Virtual Environment
+venv/ # Virtual Environment
 venv/
 env/
 ENV/
-
 # Python bytecode
-__pycache__/
+****pycache****/
 *.py[cod]
 *.class
-
 # Distribution / packaging
 dist/
 build/
 *.egg-info/
-
+# Node.js
+node_modules/
+package.json
+package-lock.json

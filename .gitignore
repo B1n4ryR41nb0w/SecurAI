@@ -18,4 +18,5 @@ build/
 node_modules/
 package.json
 package-lock.json
-data/slither-env/
+data/slither-env/.env
+.env

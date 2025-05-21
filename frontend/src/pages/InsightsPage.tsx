@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
-import { ArrowLeft, Shield, Star, Code2, LockKeyhole, Fuel, Lightbulb, Loader2 } from "lucide-react"
+import { ArrowLeft, Shield, Star, Code2, Lock, Fuel, Lightbulb, Loader2 } from "lucide-react"
 
 const mockInsights = {
   contractName: "TokenSale.sol",
@@ -13,7 +13,7 @@ const mockInsights = {
     },
     securityConsiderations: {
       title: "Security Considerations",
-      icon: LockKeyhole,
+      icon: Lock,
       content: "Beyond the vulnerabilities already identified, there are several other security considerations:\n\n1. The contract lacks input validation in several places, particularly around user-provided inputs.\n\n2. There's no protection against front-running attacks in the price-sensitive functions.\n\n3. The contract uses block.timestamp for time-sensitive operations, which can be manipulated slightly by miners.\n\n4. There are no rate limiting mechanisms to prevent abuse of certain functions."
     },
     gasOptimization: {

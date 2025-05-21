@@ -22,3 +22,7 @@ build/
 
 .env
 data/slither-env
+
+node_modules/
+frontend/node_modules/
+**/node_modules/

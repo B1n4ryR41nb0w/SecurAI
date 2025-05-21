@@ -21,16 +21,17 @@ interface Vulnerability {
   description: string;
   location?: string;
   severity?: string;
-  confidence?: number | string; // Allow string for API response flexibility
+  confidence?: number;
   details?: string;
   recommendation?: string;
+  affectedFunctions?: string[];
 }
 
 interface AnalysisResult {
   contract_name: string;
   contract_path: string;
   timestamp: string;
-  functions?: string[];
+  functions?: { name: string }[];
   vulnerabilities: Vulnerability[];
   vulnerability_summary?: {
     total: number;
@@ -53,7 +54,6 @@ export default function ReportPage() {
   const [report, setReport] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch report data from API
   useEffect(() => {
     const fetchReport = async () => {
       setLoading(true);
@@ -61,6 +61,7 @@ export default function ReportPage() {
 
       try {
         const response = await fetch(`http://localhost:8000/api/analysis/${analysisId}`);
+
         if (!response.ok) {
           throw new Error(`Failed to fetch report: ${response.statusText}`);
         }
@@ -68,42 +69,43 @@ export default function ReportPage() {
         const data = await response.json();
         console.log("API Response:", data);
 
-        // Transform data to match expected format
         const result: AnalysisResult = {
           contract_name: data.contract_name || "Unknown Contract",
           contract_path: data.contract_path || "",
           timestamp: data.timestamp || new Date().toISOString(),
-          functions: data.functions || [],
+          functions: Array.isArray(data.functions) ? data.functions.map((fn: any) => ({ name: fn.name })) : [],
           vulnerabilities: Array.isArray(data.vulnerabilities)
             ? data.vulnerabilities.map((v: any, index: number) => ({
                 id: v.id || `VULN-${index + 1}`,
                 type: v.type || "Unknown",
                 description: v.description || "",
-                location: v.location || "Unknown",
+                location: v.affectedFunctions ? v.affectedFunctions.join(", ") : "Unknown",
                 severity: v.severity || getSeverity(v.type),
-                confidence: v.confidence || v.ml_confidence || 0.8,
+                confidence: v.confidence || 0.8,
                 details: v.details || v.description,
                 recommendation: v.recommendation || getRecommendation(v.type),
+                affectedFunctions: v.affectedFunctions || [],
               }))
             : [],
         };
 
-        // Create vulnerability summary if not present
-        result.vulnerability_summary = data.vulnerability_summary || {
-          total: result.vulnerabilities.length,
-          by_severity: {
-            High: result.vulnerabilities.filter((v) => v.severity === "High").length,
-            Medium: result.vulnerabilities.filter((v) => v.severity === "Medium").length,
-            Low: result.vulnerabilities.filter((v) => v.severity === "Low").length,
-          },
-        };
+        if (!data.vulnerability_summary) {
+          const high = result.vulnerabilities.filter((v) => v.severity === "High").length;
+          const medium = result.vulnerabilities.filter((v) => v.severity === "Medium").length;
+          const low = result.vulnerabilities.filter((v) => v.severity === "Low").length;
 
-        // Use contract_stats name if available
-        if (data.contract_stats?.name) {
+          result.vulnerability_summary = {
+            total: result.vulnerabilities.length,
+            by_severity: { High: high, Medium: medium, Low: low },
+          };
+        } else {
+          result.vulnerability_summary = data.vulnerability_summary;
+        }
+
+        if (data.contract_stats && data.contract_stats.name) {
           result.contract_name = data.contract_stats.name;
         }
 
-        // Store report content if available
         if (data.report_content) {
           result.report_content = data.report_content;
         }
@@ -123,7 +125,6 @@ export default function ReportPage() {
     }
   }, [analysisId]);
 
-  // Helper function to guess severity if not provided
   const getSeverity = (type: string): string => {
     const typeLC = type.toLowerCase();
     if (typeLC.includes("reentrancy") || typeLC.includes("overflow") || typeLC.includes("access control")) {
@@ -134,7 +135,6 @@ export default function ReportPage() {
     return "Low";
   };
 
-  // Helper function to provide a recommendation if not provided
   const getRecommendation = (type: string): string => {
     const typeLC = type.toLowerCase();
     if (typeLC.includes("reentrancy")) {
@@ -151,7 +151,6 @@ export default function ReportPage() {
     return "Review the code and follow security best practices to address this issue.";
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[70vh]">
@@ -164,7 +163,6 @@ export default function ReportPage() {
     );
   }
 
-  // Error state
   if (error || !report) {
     return (
       <div className="container mx-auto py-10 px-4">
@@ -184,19 +182,16 @@ export default function ReportPage() {
     );
   }
 
-  // Calculate security score
   const calculateSecurityScore = (): { score: number; label: string; color: string } => {
     const { total, by_severity } = report.vulnerability_summary || { total: 0, by_severity: { High: 0, Medium: 0, Low: 0 } };
 
     if (total === 0) return { score: 100, label: "Excellent", color: "text-green-500" };
 
-    // Calculate weighted score: High issues count 3x, Medium 2x, Low 1x
-    const weightedIssues = (by_severity.High * 3) + (by_severity.Medium * 2) + by_severity.Low;
+    const weightedIssues = by_severity.High * 3 + by_severity.Medium * 2 + by_severity.Low;
     const maxScore = 100;
-    const deduction = Math.min(weightedIssues * 5, 95); // Cap deduction at 95 points
-    const score = Math.max(maxScore - deduction, 5); // Minimum score is 5
+    const deduction = Math.min(weightedIssues * 5, 95);
+    const score = Math.max(maxScore - deduction, 5);
 
-    // Determine label and color
     let label = "Critical";
     let color = "text-red-500";
 
@@ -217,22 +212,20 @@ export default function ReportPage() {
     return { score, label, color };
   };
 
-  // Get security score
   const securityScore = calculateSecurityScore();
 
-  // Group vulnerabilities by severity
   const highVulnerabilities = report.vulnerabilities.filter((v) => v.severity === "High");
   const mediumVulnerabilities = report.vulnerabilities.filter((v) => v.severity === "Medium");
   const lowVulnerabilities = report.vulnerabilities.filter((v) => v.severity === "Low");
 
-  // Get severity icon
-  const getSeverityIcon = (severity: string | undefined) => {
+  const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case "High":
         return <Flame className="h-5 w-5 text-red-500" />;
       case "Medium":
         return <AlertCircle className="h-5 w-5 text-yellow-500" />;
       case "Low":
+        return <Info className="h-5 w-5 text-blue-500" />;
       default:
         return <Info className="h-5 w-5 text-blue-500" />;
     }
@@ -241,15 +234,12 @@ export default function ReportPage() {
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* Header with Report Info */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="flex items-center mb-4 md:mb-0">
             <Shield className="h-8 w-8 text-primary mr-3" />
             <div>
               <h1 className="text-3xl font-bold">Audit Report</h1>
-              <p className="text-muted-foreground">
-                {new Date(report.timestamp).toLocaleString()}
-              </p>
+              <p className="text-muted-foreground">{new Date(report.timestamp).toLocaleString()}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -265,7 +255,6 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Contract Overview */}
         <div className="bg-card border rounded-lg p-6 mb-8">
           <div className="flex items-start">
             <FileCode className="h-6 w-6 text-primary mr-4 mt-1" />
@@ -280,9 +269,7 @@ export default function ReportPage() {
                     <div className="text-sm text-muted-foreground">Security Score</div>
                     <div className={`text-2xl font-bold ${securityScore.color}`}>{securityScore.score}</div>
                   </div>
-                  <div className={`text-sm font-medium ${securityScore.color}`}>
-                    {securityScore.label}
-                  </div>
+                  <div className={`text-sm font-medium ${securityScore.color}`}>{securityScore.label}</div>
                 </div>
               </div>
 
@@ -317,7 +304,6 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Vulnerabilities Section */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2" />
@@ -328,13 +314,10 @@ export default function ReportPage() {
             <div className="bg-card border rounded-lg p-6 text-center">
               <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-medium mb-2">No Vulnerabilities Found</h3>
-              <p className="text-muted-foreground">
-                Great job! Your contract passed all security checks.
-              </p>
+              <p className="text-muted-foreground">Great job! Your contract passed all security checks.</p>
             </div>
           ) : (
             <div className="space-y-6">
-              {/* High Severity */}
               {highVulnerabilities.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium mb-3 flex items-center">
@@ -343,17 +326,19 @@ export default function ReportPage() {
                   </h3>
                   <div className="space-y-4">
                     {highVulnerabilities.map((vuln, index) => (
-                      <div key={`${vuln.id || 'high'}-${index}`} className="bg-card border border-l-4 border-l-red-500 rounded-lg overflow-hidden">
+                      <div key={vuln.id || index} className="bg-card border border-l-4 border-l-red-500 rounded-lg overflow-hidden">
                         <div className="p-6">
                           <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-semibold flex items-center">
-                              {getSeverityIcon(vuln.severity)}
+                              {getSeverityIcon(vuln.severity || "High")}
                               <span className="ml-2">{vuln.type}</span>
                             </h4>
                             <div className="px-2 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-500">
-                              {typeof vuln.confidence === 'number' || vuln.confidence
-                                ? `${Math.round(Number(vuln.confidence) * 100)}% Confidence`
-                                : 'High Severity'}
+                              {vuln.confidence
+                                ? typeof vuln.confidence === "number"
+                                  ? Math.round(vuln.confidence * 100)
+                                  : Math.round(parseFloat(String(vuln.confidence)) * 100)
+                                : "High Severity"}
                             </div>
                           </div>
                           <p className="text-muted-foreground mb-4">{vuln.description}</p>
@@ -374,7 +359,6 @@ export default function ReportPage() {
                 </div>
               )}
 
-              {/* Medium Severity */}
               {mediumVulnerabilities.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium mb-3 flex items-center">
@@ -383,17 +367,19 @@ export default function ReportPage() {
                   </h3>
                   <div className="space-y-4">
                     {mediumVulnerabilities.map((vuln, index) => (
-                      <div key={`${vuln.id || 'medium'}-${index}`} className="bg-card border border-l-4 border-l-yellow-500 rounded-lg overflow-hidden">
+                      <div key={vuln.id || index} className="bg-card border border-l-4 border-l-yellow-500 rounded-lg overflow-hidden">
                         <div className="p-6">
                           <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-semibold flex items-center">
-                              {getSeverityIcon(vuln.severity)}
+                              {getSeverityIcon(vuln.severity || "Medium")}
                               <span className="ml-2">{vuln.type}</span>
                             </h4>
                             <div className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-500/10 text-yellow-500">
-                              {typeof vuln.confidence === 'number' || vuln.confidence
-                                ? `${Math.round(Number(vuln.confidence) * 100)}% Confidence`
-                                : 'Medium Severity'}
+                              {vuln.confidence
+                                ? `${typeof vuln.confidence === "number"
+                                    ? Math.round(vuln.confidence * 100)
+                                    : Math.round(parseFloat(String(vuln.confidence)) * 100)}% Confidence`
+                                : "Medium Severity"}
                             </div>
                           </div>
                           <p className="text-muted-foreground mb-4">{vuln.description}</p>
@@ -414,7 +400,6 @@ export default function ReportPage() {
                 </div>
               )}
 
-              {/* Low Severity */}
               {lowVulnerabilities.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium mb-3 flex items-center">
@@ -423,17 +408,19 @@ export default function ReportPage() {
                   </h3>
                   <div className="space-y-4">
                     {lowVulnerabilities.map((vuln, index) => (
-                      <div key={`${vuln.id || 'low'}-${index}`} className="bg-card border border-l-4 border-l-blue-500 rounded-lg overflow-hidden">
+                      <div key={vuln.id || index} className="bg-card border border-l-4 border-l-blue-500 rounded-lg overflow-hidden">
                         <div className="p-6">
                           <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-semibold flex items-center">
-                              {getSeverityIcon(vuln.severity)}
+                              {getSeverityIcon(vuln.severity || "Low")}
                               <span className="ml-2">{vuln.type}</span>
                             </h4>
                             <div className="px-2 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-500">
-                              {typeof vuln.confidence === 'number' || vuln.confidence
-                                ? `${Math.round(Number(vuln.confidence) * 100)}% Confidence`
-                                : 'Low Severity'}
+                              {vuln.confidence
+                                ? `${typeof vuln.confidence === "number"
+                                    ? Math.round(vuln.confidence * 100)
+                                    : Math.round(parseFloat(String(vuln.confidence)) * 100)}% Confidence`
+                                : "Low Severity"}
                             </div>
                           </div>
                           <p className="text-muted-foreground mb-4">{vuln.description}</p>
@@ -457,7 +444,6 @@ export default function ReportPage() {
           )}
         </div>
 
-        {/* Function Analysis Section */}
         {report.functions && report.functions.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
@@ -467,8 +453,8 @@ export default function ReportPage() {
             <div className="bg-card border rounded-lg p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {report.functions.map((fn, index) => (
-                  <div key={`fn-${index}`} className="p-3 bg-background rounded-md border">
-                    <code className="text-sm">{fn}</code>
+                  <div key={index} className="p-3 bg-background rounded-md border">
+                    <code className="text-sm">{fn.name}</code>
                   </div>
                 ))}
               </div>
@@ -476,7 +462,6 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Recommendations Section */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <Lightbulb className="h-5 w-5 mr-2" />
@@ -491,8 +476,8 @@ export default function ReportPage() {
                 <div>
                   <h4 className="text-lg font-medium mb-1">Implement Security Patterns</h4>
                   <p className="text-muted-foreground">
-                    Follow established security patterns like Checks-Effects-Interactions, and use well-tested libraries
-                    like OpenZeppelin for common contract functionality.
+                    Follow established security patterns like Checks-Effects-Interactions, and use well-tested libraries like
+                    OpenZeppelin for common contract functionality.
                   </p>
                 </div>
               </div>
@@ -503,8 +488,8 @@ export default function ReportPage() {
                 <div>
                   <h4 className="text-lg font-medium mb-1">Comprehensive Testing</h4>
                   <p className="text-muted-foreground">
-                    Develop thorough test suites that cover all edge cases and potential attack vectors. Use formal
-                    verification tools where possible.
+                    Develop thorough test suites that cover all edge cases and potential attack vectors. Use formal verification
+                    tools where possible.
                   </p>
                 </div>
               </div>
@@ -515,8 +500,8 @@ export default function ReportPage() {
                 <div>
                   <h4 className="text-lg font-medium mb-1">Gas Optimization</h4>
                   <p className="text-muted-foreground">
-                    Optimize for gas usage without sacrificing security. Consider storage patterns, loop optimizations,
-                    and efficient data structures.
+                    Optimize for gas usage without sacrificing security. Consider storage patterns, loop optimizations, and
+                    efficient data structures.
                   </p>
                 </div>
               </div>
@@ -524,7 +509,6 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Chat with AI Assistant */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <MessageCircle className="h-5 w-5 mr-2" />
@@ -551,8 +535,7 @@ export default function ReportPage() {
           ) : (
             <div className="bg-card border rounded-lg p-6">
               <p className="text-muted-foreground mb-6">
-                Have questions about the vulnerabilities in your contract? Need guidance on implementing the recommended
-                fixes?
+                Have questions about the vulnerabilities in your contract? Need guidance on implementing the recommended fixes?
               </p>
               <button className="inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90">
                 <MessageCircle className="mr-2 h-5 w-5" />
@@ -562,7 +545,6 @@ export default function ReportPage() {
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
           <Link
             to="/"

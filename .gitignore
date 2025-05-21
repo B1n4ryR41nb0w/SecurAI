@@ -20,3 +20,4 @@ package.json
 package-lock.json
 data/slither-env/.env
 .env
+data/slither-env/

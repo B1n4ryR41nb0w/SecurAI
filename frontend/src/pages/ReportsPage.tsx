@@ -46,6 +46,21 @@ interface AnalysisResult {
     name: string;
     inheritance?: string;
   };
+  analysis?: {
+    vulnerabilities: Vulnerability[];
+    functions: { name: string }[];
+    vulnerability_summary?: {
+      total: number;
+      by_severity: {
+        High: number;
+        Medium: number;
+        Low: number;
+      };
+    };
+  };
+  report?: {
+    report_content: string;
+  };
 }
 
 export default function ReportPage() {
@@ -63,42 +78,52 @@ export default function ReportPage() {
         if (!response.ok) {
           throw new Error(`Failed to fetch report: ${response.statusText}`);
         }
+        
         const data = await response.json();
         console.log("API Response:", data);
-        const result: AnalysisResult = {
-          contract_name: data.contract_name || "Unknown Contract",
-          contract_path: data.contract_path || "",
-          timestamp: data.timestamp || new Date().toISOString(),
-          functions: Array.isArray(data.functions) ? data.functions.map((fn: any) => ({ name: fn.name })) : [],
-          vulnerabilities: Array.isArray(data.vulnerabilities)
-            ? data.vulnerabilities.map((v: any, index: number) => ({
-                id: v.id || `VULN-${index + 1}`,
-                type: v.type || "Unknown",
-                description: v.description || "",
-                location: v.affectedFunctions ? v.affectedFunctions.join(", ") : v.location || "Unknown",
-                severity: v.severity || getSeverity(v.type),
-                confidence: v.confidence || 0.8,
-                details: v.details || v.description,
-                recommendation: v.recommendation || getRecommendation(v.type),
-                affectedFunctions: v.affectedFunctions || [],
-              }))
-            : [],
-          report_content: data.report_content || "",
-        };
-        if (!data.vulnerability_summary) {
-          const high = result.vulnerabilities.filter((v) => v.severity === "High").length;
-          const medium = result.vulnerabilities.filter((v) => v.severity === "Medium").length;
-          const low = result.vulnerabilities.filter((v) => v.severity === "Low").length;
-          result.vulnerability_summary = {
-            total: result.vulnerabilities.length,
+        
+        // Check if vulnerabilities are in nested analysis object
+        const vulnerabilities = data.analysis?.vulnerabilities || data.vulnerabilities || [];
+        const functions = data.analysis?.functions || data.functions || [];
+        
+        // Get vulnerability summary from appropriate location
+        let vulnSummary = data.vulnerability_summary || data.analysis?.vulnerability_summary;
+        
+        // If no summary exists, calculate it
+        if (!vulnSummary) {
+          const high = vulnerabilities.filter((v: any) => v.severity === "High").length;
+          const medium = vulnerabilities.filter((v: any) => v.severity === "Medium").length;
+          const low = vulnerabilities.filter((v: any) => v.severity === "Low").length;
+          vulnSummary = {
+            total: vulnerabilities.length,
             by_severity: { High: high, Medium: medium, Low: low },
           };
-        } else {
-          result.vulnerability_summary = data.vulnerability_summary;
         }
-        if (data.contract_stats && data.contract_stats.name) {
-          result.contract_name = data.contract_stats.name;
-        }
+        
+        // Get report content from appropriate location
+        const reportContent = data.report_content || data.report?.report_content || "";
+        
+        // Create standardized result object
+        const result: AnalysisResult = {
+          contract_name: data.contract_name || data.contract_stats?.name || "Unknown Contract",
+          contract_path: data.contract_path || "",
+          timestamp: data.timestamp || new Date().toISOString(),
+          functions: functions.map((fn: any) => ({ name: fn.name })),
+          vulnerabilities: vulnerabilities.map((v: any, index: number) => ({
+            id: v.id || `VULN-${index + 1}`,
+            type: v.type || "Unknown",
+            description: v.description || "",
+            location: v.location || (v.affectedFunctions ? v.affectedFunctions.join(", ") : "Unknown"),
+            severity: v.severity || getSeverity(v.type),
+            confidence: v.confidence || 0.8,
+            details: v.details || v.description,
+            recommendation: v.recommendation || getRecommendation(v.type),
+            affectedFunctions: v.affectedFunctions || [],
+          })),
+          vulnerability_summary: vulnSummary,
+          report_content: reportContent,
+        };
+        
         setReport(result);
       } catch (error) {
         console.error("Error fetching report:", error);
@@ -108,6 +133,7 @@ export default function ReportPage() {
         setLoading(false);
       }
     };
+    
     if (analysisId) {
       fetchReport();
     }
@@ -117,7 +143,7 @@ export default function ReportPage() {
     const typeLC = type.toLowerCase();
     if (typeLC.includes("reentrancy") || typeLC.includes("overflow") || typeLC.includes("access control")) {
       return "High";
-    } else if (typeLC.includes("unchecked") || typeLC.includes("timestamp")) {
+    } else if (typeLC.includes("unchecked") || typeLC.includes("timestamp") || typeLC.includes("version")) {
       return "Medium";
     }
     return "Low";
@@ -135,6 +161,10 @@ export default function ReportPage() {
       return "Optimize gas usage by avoiding loops with unbounded iterations and minimizing storage operations.";
     } else if (typeLC.includes("timestamp")) {
       return "Avoid relying on block.timestamp for critical timing decisions, as it can be manipulated by miners.";
+    } else if (typeLC.includes("version")) {
+      return "Update to a more recent and stable compiler version without known issues.";
+    } else if (typeLC.includes("low level") || typeLC.includes("call")) {
+      return "Consider using safer alternatives like transfer() or send(), or implement thorough checks when using low-level calls.";
     }
     return "Review the code and follow security best practices to address this issue.";
   };

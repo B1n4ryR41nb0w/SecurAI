@@ -3,10 +3,17 @@ import json
 import subprocess
 import re
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 import openai
 from dotenv import load_dotenv
 from crewai import Agent
+
+from secura_agents.bug_classifier import classify_vulnerability
+
+# Import the classifier function from bug_classifier.py
+
+# Resolve project root
+project_root = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +27,7 @@ class ContractAnalyzerAgent(Agent):
         )
 
     def analyze(self, contract_path: str) -> Dict[str, Any]:
-        """Analyze a Solidity contract using Slither and interpret results with GPT-4o Mini."""
+        """Analyze a Solidity contract using Slither, DistilRoBERTa classifier, and GPT-4o Mini."""
         print(f"Debug: Analyzing contract at path: {contract_path}")
 
         # Initialize OpenAI client
@@ -130,41 +137,45 @@ class ContractAnalyzerAgent(Agent):
                 "stateMutability": mutability if mutability else "nonpayable"
             })
 
-        # Mock Classifier output
-        def mock_classifier(vuln: Dict[str, Any]) -> Dict[str, Any]:
-            vuln_type = vuln.get("check", "").lower()
-            if "reentrancy" in vuln_type:
-                return {"severity": "High", "confidence": 0.95}
-            elif "unchecked-low-level-calls" in vuln_type:
-                return {"severity": "Medium", "confidence": 0.85}
-            else:
-                return {"severity": "Low", "confidence": 0.75}
-
-        # Process Slither vulnerabilities
+        # Process Slither vulnerabilities with DistilRoBERTa classifier
         vulnerabilities = []
         for detector in slither_output.get("results", {}).get("detectors", []):
+            vuln_type = detector.get("check", "Unknown")
             vuln = {
-                "type": detector.get("check", "Unknown"),
+                "type": vuln_type,
                 "description": detector.get("description", ""),
                 "location": f"{contract_path}:{detector.get('first_markdown_element', {}).get('source_mapping', {}).get('lines', ['Unknown'])[0]}",
                 "affectedFunctions": [elem.get("name", "") for elem in detector.get("elements", []) if elem.get("type") == "function"],
             }
-            classifier_result = mock_classifier(vuln)
-            vuln.update(classifier_result)
+
+            # Use the classifier from bug_classifier.py
+            swc_id = vuln_type if vuln_type.startswith("SWC-") else None
+            classifier_result = classify_vulnerability(
+                description=vuln["description"],
+                swc_id=swc_id,
+                title=vuln_type
+            )
+            vuln.update({
+                "severity": classifier_result["severity"],
+                "confidence": classifier_result["confidence"],
+                "all_probabilities": classifier_result["all_probabilities"]
+            })
+
             vulnerabilities.append(vuln)
 
-        # Interpret Slither output with GPT-4o Mini
+        # Interpret results with GPT-4o Mini
         prompt = f"""
         You are an expert smart contract auditor. Interpret the following Slither analysis output for the Solidity contract '{contract_name}' and provide enhanced vulnerability details in JSON format. For each vulnerability, include:
         - type: Vulnerability type
-        - description: Clear explanation for developers
-        - severity: High, Medium, or Low (use provided Classifier severity)
-        - confidence: Numeric value between 0 and 1 (use provided Classifier confidence)
+        - description: Clear explanation for dosn't make sense for me to include this in the prompt since I'm not asking for code to be generated, but rather explaining the code provided by the user. Let's keep the prompt focused on the task at hand.
+        - severity: High, Medium, or Low (from DistilRoBERTa classifier)
+        - confidence: Numeric value between 0 and 1 (from DistilRoBERTa classifier)
+        - all_probabilities: Probability distribution for Low, Medium, High (from DistilRoBERTa classifier)
         - affectedFunctions: List of affected function names
         - location: File and line number
         - recommendation: Specific mitigation steps
 
-        Slither output:
+        Slither output with classifier results:
         {json.dumps(vulnerabilities, indent=2)}
 
         Contract functions:
@@ -175,7 +186,7 @@ class ContractAnalyzerAgent(Agent):
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are an expert smart contract auditor interpreting Slither output."},
+                    {"role": "system", "content": "You are an expert smart contract auditor interpreting Slither output with classifier results."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
@@ -187,12 +198,14 @@ class ContractAnalyzerAgent(Agent):
             enhanced_vulnerabilities = vulnerabilities  # Fallback
 
         # Calculate vulnerability summary
-        high = sum(1 for v in enhanced_vulnerabilities if v["severity"] == "High")
-        medium = sum(1 for v in enhanced_vulnerabilities if v["severity"] == "Medium")
-        low = sum(1 for v in enhanced_vulnerabilities if v["severity"] == "Low")
+        severity_counts = {"High": 0, "Medium": 0, "Low": 0}
+        for v in enhanced_vulnerabilities:
+            severity = v.get("severity", "Low")
+            if severity in severity_counts:
+                severity_counts[severity] += 1
         vulnerability_summary = {
             "total": len(enhanced_vulnerabilities),
-            "by_severity": {"High": high, "Medium": medium, "Low": low}
+            "by_severity": severity_counts
         }
 
         result = {

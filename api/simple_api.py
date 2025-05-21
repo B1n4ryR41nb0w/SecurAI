@@ -1,6 +1,3 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import tempfile
 import os
 import sys
 from pathlib import Path
@@ -8,9 +5,11 @@ import uuid
 import datetime
 from typing import Dict, Any
 
-# Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import tempfile
 from secura_agents.crew_manager import run_audit
 
 app = FastAPI()
@@ -26,6 +25,7 @@ app.add_middleware(
 
 # In-memory storage for analysis results
 analysis_results: Dict[str, Any] = {}
+
 
 @app.post("/api/upload")
 async def upload_contract(file: UploadFile = File(...)):
@@ -61,12 +61,14 @@ async def upload_contract(file: UploadFile = File(...)):
             "error": str(e)
         }
 
+
 @app.get("/api/analysis/{analysis_id}")
 async def get_analysis(analysis_id: str):
     """Get analysis results by ID."""
     if analysis_id not in analysis_results:
         raise HTTPException(status_code=404, detail="Analysis not found")
     return analysis_results[analysis_id]
+
 
 @app.get("/api/test-analysis")
 async def test_analysis():
@@ -103,6 +105,8 @@ async def test_analysis():
             "error": str(e)
         }
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

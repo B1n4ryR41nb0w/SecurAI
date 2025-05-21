@@ -38,7 +38,7 @@ class ReportGeneratorAgent(Agent):
         low_severity = analysis_results.get("vulnerability_summary", {}).get("by_severity", {}).get("Low", 0)
 
         prompt = f"""
-        You are an expert smart contract auditor. Generate a professional audit report in Markdown for the Solidity contract '{contract_name}' based on the following analysis results from Slither and a Classifier:
+        You are an expert smart contract auditor. Generate a professional audit report in Markdown for the Solidity contract '{contract_name}' based on the following analysis results from Slither and a DistilRoBERTa classifier:
 
         Summary:
         - Total vulnerabilities found: {vulnerability_count}
@@ -54,12 +54,15 @@ class ReportGeneratorAgent(Agent):
 
         The report should include:
         1. Executive Summary: Brief overview of findings and their criticality.
-        2. Methodology: Explain that Slither was used for static analysis and a Classifier for severity/confidence scoring.
+        2. Methodology: Explain that Slither was used for static analysis and a DistilRoBERTa classifier for severity/confidence scoring.
         3. Findings Overview: Summarize vulnerabilities by severity.
         4. Detailed Vulnerability Descriptions: For each vulnerability, include:
            - Type
-           - Severity and confidence
+           - Severity (from classifier)
+           - Confidence (from classifier)
+           - Probability distribution for Low, Medium, High (from classifier)
            - Location in code (if available)
+           - Affected functions
            - Technical explanation
            - Impact assessment
            - Remediation recommendations

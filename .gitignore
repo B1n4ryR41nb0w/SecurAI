@@ -20,3 +20,5 @@ dist/
 build/
 *.egg-info/
 
+.env
+data/slither-env

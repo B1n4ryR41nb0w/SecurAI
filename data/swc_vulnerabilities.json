@@ -1,0 +1,367 @@
+[
+  {
+    "SWC_ID": "SWC-100",
+    "Title": "Function Default Visibility",
+    "Description": "Functions that do not have a function visibility type specified are public by default. This can lead to a vulnerability if a developer forgot to set the visibility and a malicious user is able to make unauthorized or unintended state changes.",
+    "Relationships": [],
+    "Remediation": "Functions can be specified as being external, public, internal or private. It is recommended to make a conscious decision on which visibility type is appropriate for a function. This can dramatically reduce the attack surface of a contract system.",
+    "Severity": "High",
+    "URL": "https://swcregistry.io/docs/SWC-100/"
+  },
+  {
+    "SWC_ID": "SWC-101",
+    "Title": "Integer Overflow and Underflow",
+    "Description": "An overflow/underflow happens when an arithmetic operation reaches the maximum or minimum size of a type. For instance if a number is stored in the uint8 type, it means that the number is stored in a 8 bits unsigned number ranging from 0 to 2^8-1. In computer programming, an integer overflow occurs when an arithmetic operation attempts to create a numeric value that is outside of the range that can be represented with a given number of bits \u2013 either larger than the maximum or lower than the minimum representable value.",
+    "Relationships": [],
+    "Remediation": "It is recommended to use vetted safe math libraries for arithmetic operations consistently throughout the smart contract system.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-101/"
+  },
+  {
+    "SWC_ID": "SWC-102",
+    "Title": "Outdated Compiler Version",
+    "Description": "Using an outdated compiler version can be problematic especially if there are publicly disclosed bugs and issues that affect the current compiler version.",
+    "Relationships": [],
+    "Remediation": "It is recommended to use a recent version of the Solidity compiler.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-102/"
+  },
+  {
+    "SWC_ID": "SWC-103",
+    "Title": "Floating Pragma",
+    "Description": "Contracts should be deployed with the same compiler version and flags that they have been tested with thoroughly. Locking the pragma helps to ensure that contracts do not accidentally get deployed using, for example, an outdated compiler version that might introduce bugs that affect the contract system negatively.",
+    "Relationships": [],
+    "Remediation": "Lock the pragma version and also consider known bugs (https://github.com/ethereum/solidity/releases) for the compiler version that is chosen. Pragma statements can be allowed to float when a contract is intended for consumption by other developers, as in the case with contracts in a library or EthPM package. Otherwise, the developer would need to manually update the pragma in order to compile locally.",
+    "Severity": "Low",
+    "URL": "https://swcregistry.io/docs/SWC-103/"
+  },
+  {
+    "SWC_ID": "SWC-104",
+    "Title": "Unchecked Call Return Value",
+    "Description": "The return value of a message call is not checked. Execution will resume even if the called contract throws an exception. If the call fails accidentally or an attacker forces the call to fail, this may cause unexpected behaviour in the subsequent program logic.",
+    "Relationships": [],
+    "Remediation": "If you choose to use low-level call methods, make sure to handle the possibility that the call will fail by checking the return value.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-104/"
+  },
+  {
+    "SWC_ID": "SWC-105",
+    "Title": "Unprotected Ether Withdrawal",
+    "Description": "Due to missing or insufficient access controls, malicious parties can withdraw some or all Ether from the contract account. This bug is sometimes caused by unintentionally exposing initialization functions. By wrongly naming a function intended to be a constructor, the constructor code ends up in the runtime byte code and can be called by anyone to re-initialize the contract.",
+    "Relationships": [],
+    "Remediation": "Implement controls so withdrawals can only be triggered by authorized parties or according to the specs of the smart contract system.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-105/"
+  },
+  {
+    "SWC_ID": "SWC-106",
+    "Title": "Unprotected SELFDESTRUCT Instruction",
+    "Description": "Due to missing or insufficient access controls, malicious parties can self-destruct the contract.",
+    "Relationships": [],
+    "Remediation": "Consider removing the self-destruct functionality unless it is absolutely required. If there is a valid use-case, it is recommended to implement a multisig scheme so that multiple parties must approve the self-destruct action.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-106/"
+  },
+  {
+    "SWC_ID": "SWC-107",
+    "Title": "Reentrancy",
+    "Description": "One of the major dangers of calling external contracts is that they can take over the control flow. In the reentrancy attack (a.k.a. recursive call attack), a malicious contract calls back into the calling contract before the first invocation of the function is finished. This may cause the different invocations of the function to interact in undesirable ways.",
+    "Relationships": [
+      "CWE-841: Improper Enforcement of Behavioral Workflow"
+    ],
+    "Remediation": "The best practices to avoid Reentrancy weaknesses are:",
+    "Severity": "High",
+    "URL": "https://swcregistry.io/docs/SWC-107/"
+  },
+  {
+    "SWC_ID": "SWC-108",
+    "Title": "State Variable Default Visibility",
+    "Description": "Labeling the visibility explicitly makes it easier to catch incorrect assumptions about who can access the variable.",
+    "Relationships": [
+      "CWE-710: Improper Adherence to Coding Standards"
+    ],
+    "Remediation": "Variables can be specified as being public, internal or private. Explicitly define visibility for all state variables.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-108/"
+  },
+  {
+    "SWC_ID": "SWC-109",
+    "Title": "Uninitialized Storage Pointer",
+    "Description": "Uninitialized local storage variables can point to unexpected storage locations in the contract, which can lead to intentional or unintentional vulnerabilities.",
+    "Relationships": [
+      "CWE-824: Access of Uninitialized Pointer"
+    ],
+    "Remediation": "Check if the contract requires a storage object as in many situations this is actually not the case. If a local variable is sufficient, mark the storage location of the variable explicitly with the memory attribute. If a storage variable is needed then initialise it upon declaration and additionally specify the storage location storage. Note: As of compiler version 0.5.0 and higher this issue has been systematically resolved as contracts with uninitialised storage pointers do no longer compile.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-109/"
+  },
+  {
+    "SWC_ID": "SWC-110",
+    "Title": "Assert Violation",
+    "Description": "The Solidity assert() function is meant to assert invariants. Properly functioning code should never reach a failing assert statement. A reachable assertion can mean one of two things:",
+    "Relationships": [
+      "CWE-670: Always-Incorrect Control Flow Implementation"
+    ],
+    "Remediation": "Consider whether the condition checked in the assert() is actually an invariant. If not, replace the assert() statement with a require() statement. If the exception is indeed caused by unexpected behaviour of the code, fix the underlying bug(s) that allow the assertion to be violated.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-110/"
+  },
+  {
+    "SWC_ID": "SWC-111",
+    "Title": "Use of Deprecated Solidity Functions",
+    "Description": "Several functions and operators in Solidity are deprecated. Using them leads to reduced code quality. With new major versions of the Solidity compiler, deprecated functions and operators may result in side effects and compile errors.",
+    "Relationships": [
+      "CWE-477: Use of Obsolete Function"
+    ],
+    "Remediation": "Solidity provides alternatives to the deprecated constructions. Most of them are aliases, thus replacing old constructions will not break current behavior. For example, sha3 can be replaced with keccak256.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-111/"
+  },
+  {
+    "SWC_ID": "SWC-112",
+    "Title": "Delegatecall to Untrusted Callee",
+    "Description": "There exists a special variant of a message call, named delegatecall which is identical to a message call apart from the fact that the code at the target address is executed in the context of the calling contract and msg.sender and msg.value do not change their values. This allows a smart contract to dynamically load code from a different address at runtime. Storage, current address and balance still refer to the calling contract. Calling into untrusted contracts is very dangerous, as the code at the target address can change any storage values of the caller and has full control over the caller's balance.",
+    "Relationships": [
+      "CWE-829: Inclusion of Functionality from Untrusted Control Sphere"
+    ],
+    "Remediation": "Use delegatecall with caution and make sure to never call into untrusted contracts. If the target address is derived from user input ensure to check it against a whitelist of trusted contracts.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-112/"
+  },
+  {
+    "SWC_ID": "SWC-113",
+    "Title": "DoS with Failed Call",
+    "Description": "External calls can fail accidentally or deliberately, which can cause a DoS condition in the contract. To minimize the damage caused by such failures, it is better to isolate each external call into its own transaction that can be initiated by the recipient of the call. This is especially relevant for payments, where it is better to let users withdraw funds rather than push funds to them automatically (this also reduces the chance of problems with the gas limit).",
+    "Relationships": [
+      "CWE-703: Improper Check or Handling of Exceptional Conditions"
+    ],
+    "Remediation": "It is recommended to follow call best practices:",
+    "Severity": "Low",
+    "URL": "https://swcregistry.io/docs/SWC-113/"
+  },
+  {
+    "SWC_ID": "SWC-114",
+    "Title": "Transaction Order Dependence",
+    "Description": "The Ethereum network processes transactions in blocks, with new blocks getting confirmed approximately every 17 seconds. Miners review the transactions they have received and select which ones to include in a block, based on who has paid a high enough gas price to be included. Additionally, when transactions are sent to the Ethereum network, they are forwarded to each node for processing. Thus, a person who is running an Ethereum node can tell which transactions are going to occur before they are finalized. A race condition vulnerability occurs when code depends on the order of the transactions submitted to it. The simplest example of a race condition is when a smart contract gives a reward for submitting information. Suppose a contract will give out 1 token to the first person who solves a math problem. Alice solves the problem and submits the answer to the network with a standard gas price. Eve runs an Ethereum node and can see the answer to the math problem in the transaction that Alice submitted to the network. So, Eve submits the answer to the network with a much higher gas price, and thus it gets processed and committed before Alice's transaction. Eve receives one token, and Alice gets nothing, even though it was Alice who worked to solve the problem. A common way this occurs in practice is when a contract rewards people for calling out bad behavior in a protocol by giving a bad actor's deposit to the person who proved they were misbehaving. The race condition that happens most frequently on the network today is the race condition in the ERC20 token standard. The ERC20 token standard includes a function called 'approve', which allows an address to approve another address to spend tokens on their behalf. Assume that Alice has approved Eve to spend n of her tokens, then Alice decides to change Eve's approval to m tokens. Alice submits a function call to approve with the value n for Eve. Eve runs an Ethereum node, so she knows that Alice is going to change her approval to m. Eve then submits a transferFrom request, sending n of Alice's tokens to herself, but gives it a much higher gas price than Alice's transaction. The transferFrom executes first so gives Eve n tokens and sets Eve's approval to zero. Then Alice's transaction executes and sets Eve's approval to m. Eve then sends those m tokens to herself as well. Thus, Eve gets n + m tokens, even though she should have gotten at most max(n,m).",
+    "Relationships": [
+      "CWE-362: Concurrent Execution using Shared Resource with Improper Synchronization ('Race Condition')"
+    ],
+    "Remediation": "A possible way to remedy race conditions in the submission of information in exchange for a reward is called a commit reveal hash scheme. Instead of submitting the answer, the party who has the answer submits hash(salt, address, answer) [salt being some number of their choosing]; the contract stores this hash and the sender's address. To claim the reward, the sender then submits a transaction with the salt, and answer. The contract hashes (salt, msg.sender, answer) and checks the hash produced against the stored hash. If the hash matches, the contract releases the reward. The best fix for the ERC20 race condition is to add a field to the inputs of approve, which is the expected current value, and to have approve revert if Eve's current allowance is not what Alice indicated she was expecting. However, this means that your contract no longer conforms to the ERC20 standard. If it is important to your project to have the contract conform to ERC20, you can add a safe approve function. From the user's perspective, it is possible to mitigate the ERC20 race condition by setting approvals to zero before changing them.",
+    "Severity": "Low",
+    "URL": "https://swcregistry.io/docs/SWC-114/"
+  },
+  {
+    "SWC_ID": "SWC-115",
+    "Title": "Authorization through tx.origin",
+    "Description": "tx.origin is a global variable in Solidity which returns the address of the account that sent the transaction. Using the variable for authorization could make a contract vulnerable if an authorized account calls into a malicious contract. A call could be made to the vulnerable contract that passes the authorization check since tx.origin returns the original sender of the transaction which in this case is the authorized account.",
+    "Relationships": [],
+    "Remediation": "tx.origin should not be used for authorization. Use msg.sender instead.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-115/"
+  },
+  {
+    "SWC_ID": "SWC-116",
+    "Title": "Block values as a proxy for time",
+    "Description": "Contracts often need access to time values to perform certain types of functionality. Values such as block.timestamp, and block.number can give you a sense of the current time or a time delta, however, they are not safe to use for most purposes. In the case of block.timestamp, developers often attempt to use it to trigger time-dependent events. As Ethereum is decentralized, nodes can synchronize time only to some degree. Moreover, malicious miners can alter the timestamp of their blocks, especially if they can gain advantages by doing so. However, miners can't set a timestamp smaller than the previous one (otherwise the block will be rejected), nor can they set the timestamp too far ahead in the future. Taking all of the above into consideration, developers can't rely on the preciseness of the provided timestamp. As for block.number, considering the block time on Ethereum is generally about 14 seconds, it's possible to predict the time delta between blocks. However, block times are not constant and are subject to change for a variety of reasons, e.g. fork reorganisations and the difficulty bomb. Due to variable block times, block.number should also not be relied on for precise calculations of time.",
+    "Relationships": [],
+    "Remediation": "Developers should write smart contracts with the notion that block values are not precise, and the use of them can lead to unexpected effects. Alternatively, they may make use of oracles.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-116/"
+  },
+  {
+    "SWC_ID": "SWC-117",
+    "Title": "Signature Malleability",
+    "Description": "The implementation of a cryptographic signature system in Ethereum contracts often assumes that the signature is unique, but signatures can be altered without the possession of the private key and still be valid. The EVM specification defines several so-called \u2018precompiled\u2019 contracts one of them being ecrecover which executes the elliptic curve public key recovery. A malicious user can slightly modify the three values v, r and s to create other valid signatures. A system that performs signature verification on contract level might be susceptible to attacks if the signature is part of the signed message hash. Valid signatures could be created by a malicious user to replay previously signed messages.",
+    "Relationships": [
+      "CWE-347: Improper Verification of Cryptographic Signature"
+    ],
+    "Remediation": "A signature should never be included into a signed message hash to check if previously messages have been processed by the contract.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-117/"
+  },
+  {
+    "SWC_ID": "SWC-118",
+    "Title": "Incorrect Constructor Name",
+    "Description": "Constructors are special functions that are called only once during the contract creation. They often perform critical, privileged actions such as setting the owner of the contract. Before Solidity version 0.4.22, the only way of defining a constructor was to create a function with the same name as the contract class containing it. A function meant to become a constructor becomes a normal, callable function if its name doesn't exactly match the contract name.\nThis behavior sometimes leads to security issues, in particular when smart contract code is re-used with a different name but the name of the constructor function is not changed accordingly.",
+    "Relationships": [],
+    "Remediation": "Solidity version 0.4.22 introduces a new constructor keyword that make a constructor definitions clearer. It is therefore recommended to upgrade the contract to a recent version of the Solidity compiler and change to the new constructor declaration.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-118/"
+  },
+  {
+    "SWC_ID": "SWC-119",
+    "Title": "Shadowing State Variables",
+    "Description": "Solidity allows for ambiguous naming of state variables when inheritance is used. Contract A with a variable x could inherit contract B that also has a state variable x defined. This would result in two separate versions of x, one of them being accessed from contract A and the other one from contract B. In more complex contract systems this condition could go unnoticed and subsequently lead to security issues. Shadowing state variables can also occur within a single contract when there are multiple definitions on the contract and function level.",
+    "Relationships": [],
+    "Remediation": "Review storage variable layouts for your contract systems carefully and remove any ambiguities. Always check for compiler warnings as they can flag the issue within a single contract.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-119/"
+  },
+  {
+    "SWC_ID": "SWC-120",
+    "Title": "Weak Sources of Randomness from Chain Attributes",
+    "Description": "Ability to generate random numbers is very helpful in all kinds of applications. One obvious example is gambling DApps, where pseudo-random number generator is used to pick the winner. However, creating a strong enough source of randomness in Ethereum is very challenging. For example, use of block.timestamp is insecure, as a miner can choose to provide any timestamp within a few seconds and still get his block accepted by others. Use of blockhash, block.difficulty and other fields is also insecure, as they're controlled by the miner. If the stakes are high, the miner can mine lots of blocks in a short time by renting hardware, pick the block that has required block hash for him to win, and drop all others.",
+    "Relationships": [],
+    "Remediation": "",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-120/"
+  },
+  {
+    "SWC_ID": "SWC-121",
+    "Title": "Missing Protection against Signature Replay Attacks",
+    "Description": "It is sometimes necessary to perform signature verification in smart contracts to achieve better usability or to save gas cost. A secure implementation needs to protect against Signature Replay Attacks by for example keeping track of all processed message hashes and only allowing new message hashes to be processed. A malicious user could attack a contract without such a control and get message hash that was sent by another user processed multiple times.",
+    "Relationships": [
+      "CWE-347: Improper Verification of Cryptographic Signature"
+    ],
+    "Remediation": "In order to protect against signature replay attacks consider the following recommendations:",
+    "Severity": "Low",
+    "URL": "https://swcregistry.io/docs/SWC-121/"
+  },
+  {
+    "SWC_ID": "SWC-122",
+    "Title": "Lack of Proper Signature Verification",
+    "Description": "It is a common pattern for smart contract systems to allow users to sign messages off-chain instead of directly requesting users to do an on-chain transaction because of the flexibility and increased transferability that this provides. Smart contract systems that process signed messages have to implement their own logic to recover the authenticity from the signed messages before they process them further. A limitation for such systems is that smart contracts can not directly interact with them because they can not sign messages. Some signature verification implementations attempt to solve this problem by assuming the validity of a signed message based on other methods that do not have this limitation. An example of such a method is to rely on msg.sender and assume that if a signed message originated from the sender address then it has also been created by the sender address. This can lead to vulnerabilities especially in scenarios where proxies can be used to relay transactions.",
+    "Relationships": [
+      "CWE-345: Insufficient Verification of Data Authenticity"
+    ],
+    "Remediation": "It is not recommended to use alternate verification schemes that do not require proper signature verification through ecrecover().",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-122/"
+  },
+  {
+    "SWC_ID": "SWC-123",
+    "Title": "Requirement Violation",
+    "Description": "The Solidity require() construct is meant to validate external inputs of a function. In most cases, such external inputs are provided by callers, but they may also be returned by callees. In the former case, we refer to them as precondition violations. Violations of a requirement can indicate one of two possible issues:",
+    "Relationships": [
+      "CWE-573: Improper Following of Specification by Caller"
+    ],
+    "Remediation": "If the required logical condition is too strong, it should be weakened to allow all valid external inputs. Otherwise, the bug must be in the contract that provided the external input and one should consider fixing its code by making sure no invalid inputs are provided.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-123/"
+  },
+  {
+    "SWC_ID": "SWC-124",
+    "Title": "Write to Arbitrary Storage Location",
+    "Description": "A smart contract's data (e.g., storing the owner of the contract) is persistently stored\nat some storage location (i.e., a key or address) on the EVM level. The contract is\nresponsible for ensuring that only authorized user or contract accounts may write to\nsensitive storage locations. If an attacker is able to write to arbitrary storage\nlocations of a contract, the authorization checks may easily be circumvented. This can\nallow an attacker to corrupt the storage; for instance, by overwriting a field that stores\nthe address of the contract owner.",
+    "Relationships": [
+      "CWE-123: Write-what-where Condition"
+    ],
+    "Remediation": "As a general advice, given that all data structures share the same storage (address)\nspace, one should make sure that writes to one data structure cannot inadvertently\noverwrite entries of another data structure.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-124/"
+  },
+  {
+    "SWC_ID": "SWC-125",
+    "Title": "Incorrect Inheritance Order",
+    "Description": "Solidity supports multiple inheritance, meaning that one contract can inherit several contracts. Multiple inheritance introduces ambiguity called Diamond Problem: if two or more base contracts define the same function, which one should be called in the child contract? Solidity deals with this ambiguity by using reverse C3 Linearization, which sets a priority between base contracts. That way, base contracts have different priorities, so the order of inheritance matters. Neglecting inheritance order can lead to unexpected behavior.",
+    "Relationships": [
+      "CWE-696: Incorrect Behavior Order"
+    ],
+    "Remediation": "When inheriting multiple contracts, especially if they have identical functions, a developer should carefully specify inheritance in the correct order. The rule of thumb is to inherit contracts from more /general/ to more /specific/.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-125/"
+  },
+  {
+    "SWC_ID": "SWC-126",
+    "Title": "Insufficient Gas Griefing",
+    "Description": "Insufficient gas griefing attacks can be performed on contracts which accept data and use it in a sub-call on another contract. If the sub-call fails, either the whole transaction is reverted, or execution is continued. In the case of a relayer contract, the user who executes the transaction, the 'forwarder', can effectively censor transactions by using just enough gas to execute the transaction, but not enough for the sub-call to succeed.",
+    "Relationships": [],
+    "Remediation": "There are two options to prevent insufficient gas griefing:",
+    "Severity": "Low",
+    "URL": "https://swcregistry.io/docs/SWC-126/"
+  },
+  {
+    "SWC_ID": "SWC-127",
+    "Title": "Arbitrary Jump with Function Type Variable",
+    "Description": "Solidity supports function types. That is, a variable of function type can be assigned with a reference to a function with a matching signature. The function saved to such variable can be called just like a regular function. The problem arises when a user has the ability to arbitrarily change the function type variable and thus execute random code instructions. As Solidity doesn't support pointer arithmetics, it's impossible to change such variable to an arbitrary value. However, if the developer uses assembly instructions, such as mstore or assign operator, in the worst case scenario an attacker is able to point a function type variable to any code instruction, violating required validations and required state changes.",
+    "Relationships": [],
+    "Remediation": "The use of assembly should be minimal. A developer should not allow a user to assign arbitrary values to function type variables.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-127/"
+  },
+  {
+    "SWC_ID": "SWC-128",
+    "Title": "DoS With Block Gas Limit",
+    "Description": "When smart contracts are deployed or functions inside them are called, the execution of these actions always requires a certain amount of gas, based of how much computation is needed to complete them. The Ethereum network specifies a block gas limit and the sum of all transactions included in a block can not exceed the threshold. Programming patterns that are harmless in centralized applications can lead to Denial of Service conditions in smart contracts when the cost of executing a function exceeds the block gas limit. Modifying an array of unknown size, that increases in size over time, can lead to such a Denial of Service condition.",
+    "Relationships": [],
+    "Remediation": "Caution is advised when you expect to have large arrays that grow over time. Actions that require looping across the entire data structure should be avoided. If you absolutely must loop over an array of unknown size, then you should plan for it to potentially take multiple blocks, and therefore require multiple transactions.",
+    "Severity": "Low",
+    "URL": "https://swcregistry.io/docs/SWC-128/"
+  },
+  {
+    "SWC_ID": "SWC-129",
+    "Title": "Typographical Error",
+    "Description": "A typographical error can occur for example when the intent of a defined operation is to sum a number to a variable (+=) but it has accidentally been defined in a wrong way (=+), introducing a typo which happens to be a valid operator. Instead of calculating the sum it initializes the variable again. The unary + operator is deprecated in new solidity compiler versions.",
+    "Relationships": [],
+    "Remediation": "The weakness can be avoided by performing pre-condition checks on any math operation or using a vetted library for arithmetic calculations such as SafeMath developed by OpenZeppelin.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-129/"
+  },
+  {
+    "SWC_ID": "SWC-130",
+    "Title": "Right-To-Left-Override control character (U+202E)",
+    "Description": "Malicious actors can use the Right-To-Left-Override unicode character to force RTL text rendering and confuse users as to the real intent of a contract.",
+    "Relationships": [],
+    "Remediation": "There are very few legitimate uses of the U+202E character. It should not appear in the source code of a smart contract.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-130/"
+  },
+  {
+    "SWC_ID": "SWC-131",
+    "Title": "Presence of unused variables",
+    "Description": "Unused variables are allowed in Solidity and they do not pose a direct security issue. It is best practice though to avoid them as they can:",
+    "Relationships": [],
+    "Remediation": "Remove all unused variables from the code base.",
+    "Severity": "Low",
+    "URL": "https://swcregistry.io/docs/SWC-131/"
+  },
+  {
+    "SWC_ID": "SWC-132",
+    "Title": "Unexpected Ether balance",
+    "Description": "Contracts can behave erroneously when they strictly assume a specific Ether balance. It is always possible to forcibly send ether to a contract (without triggering its fallback function), using selfdestruct, or by mining to the account. In the worst case scenario this could lead to DOS conditions that might render the contract unusable.",
+    "Relationships": [],
+    "Remediation": "Avoid strict equality checks for the Ether balance in a contract.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-132/"
+  },
+  {
+    "SWC_ID": "SWC-133",
+    "Title": "Hash Collisions With Multiple Variable Length Arguments",
+    "Description": "Using abi.encodePacked() with multiple variable length arguments can, in certain situations, lead to a hash collision. Since abi.encodePacked() packs all elements in order regardless of whether they're part of an array, you can move elements between arrays and, so long as all elements are in the same order, it will return the same encoding. In a signature verification situation, an attacker could exploit this by modifying the position of elements in a previous function call to effectively bypass authorization.",
+    "Relationships": [
+      "CWE-294: Authentication Bypass by Capture-replay"
+    ],
+    "Remediation": "When using abi.encodePacked(), it's crucial to ensure that a matching signature cannot be achieved using different parameters. To do so, either do not allow users access to parameters used in abi.encodePacked(), or use fixed length arrays. Alternatively, you can simply use abi.encode() instead. It is also recommended that you use replay protection (see SWC-121), although an attacker can still bypass this by front-running.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-133/"
+  },
+  {
+    "SWC_ID": "SWC-134",
+    "Title": "Message call with hardcoded gas amount",
+    "Description": "The transfer() and send() functions forward a fixed amount of 2300 gas. Historically, it has often been recommended to use these functions for value transfers to guard against reentrancy attacks. However, the gas cost of EVM instructions may change significantly during hard forks which may break already deployed contract systems that make fixed assumptions about gas costs.  For example. EIP 1884 broke several existing smart contracts due to a cost increase of the SLOAD instruction.",
+    "Relationships": [
+      "CWE-655: Improper Initialization"
+    ],
+    "Remediation": "Avoid the use of transfer() and send() and do not otherwise specify a fixed amount of gas when performing calls. Use .call.value(...)(\"\") instead. Use the checks-effects-interactions pattern and/or reentrancy locks to prevent reentrancy attacks.",
+    "Severity": "High",
+    "URL": "https://swcregistry.io/docs/SWC-134/"
+  },
+  {
+    "SWC_ID": "SWC-135",
+    "Title": "Code With No Effects",
+    "Description": "In Solidity, it's possible to write code that does not produce the intended effects. Currently, the solidity compiler will not return a warning for effect-free code. This can lead to the introduction of \"dead\" code that does not properly perform an intended action. For example, it's easy to miss the trailing parentheses in msg.sender.call.value(address(this).balance)(\"\");, which could lead to a function proceeding without transferring funds to msg.sender. Although, this should be avoided by checking the return value of the call.",
+    "Relationships": [],
+    "Remediation": "It's important to carefully ensure that your contract works as intended. Write  unit tests to verify correct behaviour of the code.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-135/"
+  },
+  {
+    "SWC_ID": "SWC-136",
+    "Title": "Unencrypted Private Data On-Chain",
+    "Description": "It is a common misconception that private type variables cannot be read. Even if your contract is not published, attackers can look at contract transactions to determine values stored in the state of the contract. For this reason, it's important that unencrypted private data is not stored in the contract code or state.",
+    "Relationships": [],
+    "Remediation": "Any private data should either be stored off-chain, or carefully encrypted.",
+    "Severity": "Medium",
+    "URL": "https://swcregistry.io/docs/SWC-136/"
+  }
+]

@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
+
 from secura_agents.crew_manager import run_audit
 
 app = FastAPI()
@@ -27,19 +28,42 @@ app.add_middleware(
 analysis_results: Dict[str, Any] = {}
 
 
+# Function to get analysis results by ID
+def get_analysis_by_id(analysis_id: str) -> Dict[str, Any]:
+    if analysis_id not in analysis_results:
+        raise KeyError(f"Analysis not found: {analysis_id}")
+    return analysis_results[analysis_id]
+
+
+# Import modules (no circular dependency)
+from routes import chat
+from routes import insights
+
+# Set the analysis getter function in the chat module
+chat.set_analysis_getter(get_analysis_by_id)
+insights.set_analysis_getter(get_analysis_by_id)
+
+# Include the routers
+app.include_router(chat.router)
+app.include_router(insights.router)
+
+
 @app.post("/api/upload")
 async def upload_contract(file: UploadFile = File(...)):
     """Upload and analyze a Solidity contract."""
     try:
         temp_dir = Path(tempfile.mkdtemp())
         temp_path = temp_dir / file.filename
+
         with open(temp_path, "wb") as temp_file:
             content = await file.read()
             temp_file.write(content)
+
         print(f"Saved uploaded file to: {temp_path}")
 
         analysis_id = str(uuid.uuid4())
         result = run_audit(str(temp_path))
+
         if "error" in result:
             raise Exception(result["error"])
 
@@ -49,11 +73,13 @@ async def upload_contract(file: UploadFile = File(...)):
             "timestamp": result.get("timestamp", datetime.datetime.now().isoformat()),
             **result
         }
+
         return {
             "success": True,
             "analysis_id": analysis_id,
             "message": "Contract analyzed successfully"
         }
+
     except Exception as e:
         print(f"Error: {e}")
         return {
@@ -65,9 +91,11 @@ async def upload_contract(file: UploadFile = File(...)):
 @app.get("/api/analysis/{analysis_id}")
 async def get_analysis(analysis_id: str):
     """Get analysis results by ID."""
-    if analysis_id not in analysis_results:
+    try:
+        result = get_analysis_by_id(analysis_id)
+        return result
+    except KeyError:
         raise HTTPException(status_code=404, detail="Analysis not found")
-    return analysis_results[analysis_id]
 
 
 @app.get("/api/test-analysis")
@@ -76,6 +104,7 @@ async def test_analysis():
     try:
         project_root = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         test_contract = project_root / "data" / "test_contracts" / "Vulnerable.sol"
+
         if not os.path.exists(test_contract):
             return {
                 "success": False,
@@ -84,6 +113,7 @@ async def test_analysis():
 
         analysis_id = "test-analysis"
         result = run_audit(str(test_contract))
+
         if "error" in result:
             raise Exception(result["error"])
 
@@ -93,11 +123,13 @@ async def test_analysis():
             "timestamp": result.get("timestamp", datetime.datetime.now().isoformat()),
             **result
         }
+
         return {
             "success": True,
             "analysis_id": analysis_id,
             "message": "Contract analyzed successfully"
         }
+
     except Exception as e:
         print(f"Error: {e}")
         return {

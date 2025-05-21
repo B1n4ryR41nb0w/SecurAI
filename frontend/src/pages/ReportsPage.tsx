@@ -484,18 +484,93 @@ export default function ReportPage() {
                   }}
                 />
               </div>
+              <div className="mt-6 pt-4 border-t flex justify-end">
+                <Link
+                  to={`/chat/${analysisId}`}
+                  className="inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90"
+                >
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  Chat with AI Assistant
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="bg-card border rounded-lg p-6">
               <p className="text-muted-foreground mb-6">
                 Have questions about the vulnerabilities in your contract? Need guidance on implementing the recommended fixes?
               </p>
-              <button className="inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90">
+              <Link
+                to={`/chat/${analysisId}`}
+                className="inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90"
+              >
                 <MessageCircle className="mr-2 h-5 w-5" />
                 Chat with AI Assistant
-              </button>
+              </Link>
             </div>
           )}
+          <div className="mb-8">
+  <h2 className="text-xl font-semibold mb-4 flex items-center">
+    <MessageCircle className="h-5 w-5 mr-2" />
+    AI Analysis Report
+  </h2>
+  {report.report_content ? (
+    <div className="bg-card border rounded-lg p-6">
+      <div className="prose prose-sm max-w-none">
+        <div
+          dangerouslySetInnerHTML={{
+            __html: report.report_content
+              .replace(/^# /gm, '<h1 class="text-2xl font-bold mb-4">')
+              .replace(/^## /gm, '<h2 class="text-xl font-bold mt-6 mb-3">')
+              .replace(/^### /gm, '<h3 class="text-lg font-bold mt-5 mb-2">')
+              .replace(/^#### /gm, '<h4 class="text-md font-bold mt-4 mb-2">')
+              .replace(/```([^`]+)```/gs, '<pre class="bg-background p-4 rounded-md my-4 overflow-x-auto"><code>$1</code></pre>')
+              .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+              .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+              .replace(/\n\n/g, '<p class="mb-4"></p>')
+          }}
+        />
+      </div>
+      <div className="mt-6 pt-4 border-t flex flex-col sm:flex-row gap-4 items-center sm:justify-end">
+        <Link
+          to={`/chat/${analysisId}`}
+          className="w-full sm:w-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90"
+        >
+          <MessageCircle className="mr-2 h-5 w-5" />
+          Chat with AI Assistant
+        </Link>
+        <Link
+          to={`/insights/${analysisId}`}
+          className="w-full sm:w-auto inline-flex items-center justify-center bg-secondary text-secondary-foreground px-6 py-3 rounded-md font-medium hover:bg-secondary/80"
+        >
+          <Lightbulb className="mr-2 h-5 w-5" />
+          View Developer Insights
+        </Link>
+      </div>
+    </div>
+  ) : (
+    <div className="bg-card border rounded-lg p-6">
+      <p className="text-muted-foreground mb-6">
+        Have questions about the vulnerabilities in your contract? Need guidance on implementing the recommended fixes?
+      </p>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link
+          to={`/chat/${analysisId}`}
+          className="w-full sm:w-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90"
+        >
+          <MessageCircle className="mr-2 h-5 w-5" />
+          Chat with AI Assistant
+        </Link>
+        <Link
+          to={`/insights/${analysisId}`}
+          className="w-full sm:w-auto inline-flex items-center justify-center bg-secondary text-secondary-foreground px-6 py-3 rounded-md font-medium hover:bg-secondary/80"
+        >
+          <Lightbulb className="mr-2 h-5 w-5" />
+          View Developer Insights
+        </Link>
+      </div>
+    </div>
+  )}
+</div>
         </div>
         <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
           <Link

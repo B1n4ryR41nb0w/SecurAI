@@ -35,14 +35,17 @@ def get_analysis_by_id(analysis_id: str) -> Dict[str, Any]:
     return analysis_results[analysis_id]
 
 
-# Import chat module (no circular dependency now)
+# Import modules (no circular dependency)
 from routes import chat
+from routes import insights
 
 # Set the analysis getter function in the chat module
 chat.set_analysis_getter(get_analysis_by_id)
+insights.set_analysis_getter(get_analysis_by_id)
 
-# Include the chat router
+# Include the routers
 app.include_router(chat.router)
+app.include_router(insights.router)
 
 
 @app.post("/api/upload")

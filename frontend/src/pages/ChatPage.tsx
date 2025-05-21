@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react"
-import { useParams } from "react-router-dom"
-import { Send, ArrowLeft, Bot, User, Shield } from "lucide-react"
-import { Link } from "react-router-dom"
+import { useState, useRef, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Send, ArrowLeft, Bot, User, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -10,19 +10,76 @@ interface Message {
   timestamp: Date;
 }
 
+interface ChatSession {
+  session_id: string;
+  contract_name: string;
+  created_at: string;
+  message_count?: number;
+}
+
 export default function ChatPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Hello! I'm your smart contract audit assistant. I can help explain vulnerabilities found in your contract and answer any questions you have about security best practices. What would you like to know?",
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [contractName, setContractName] = useState<string>("Unknown Contract");
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize chat session when component mounts
+  useEffect(() => {
+    const initChatSession = async () => {
+      if (!analysisId) return;
+      
+      try {
+        // First, get the analysis results
+        const analysisResponse = await fetch(`http://localhost:8000/api/analysis/${analysisId}`);
+        
+        if (!analysisResponse.ok) {
+          throw new Error(`Failed to fetch analysis: ${analysisResponse.statusText}`);
+        }
+        
+        const analysisData = await analysisResponse.json();
+        
+        // Create a chat session with the analysis context
+        const sessionResponse = await fetch('http://localhost:8000/api/chat/sessions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            analysis_id: analysisId
+          }),
+        });
+        
+        if (!sessionResponse.ok) {
+          throw new Error(`Failed to create chat session: ${sessionResponse.statusText}`);
+        }
+        
+        const sessionData = await sessionResponse.json();
+        
+        setSessionId(sessionData.session_id);
+        setContractName(sessionData.contract_name || analysisData.contract_name || "Unknown Contract");
+        
+        // Add initial welcome message
+        setMessages([
+          {
+            id: "welcome",
+            role: "assistant",
+            content: `Hello! I'm your smart contract audit assistant. I've analyzed ${sessionData.contract_name}. I can help explain vulnerabilities found in your contract and answer any questions you have about security best practices. What would you like to know?`,
+            timestamp: new Date()
+          }
+        ]);
+        
+      } catch (err) {
+        console.error('Error initializing chat:', err);
+        setError(`Failed to initialize chat: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    };
+    
+    initChatSession();
+  }, [analysisId]);
   
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -32,11 +89,12 @@ export default function ChatPage() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!input.trim()) return;
+    if (!input.trim() || !sessionId) return;
     
-    // Add user message
+    // Add user message to UI immediately
+    const messageId = Date.now().toString();
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: messageId,
       role: "user",
       content: input,
       timestamp: new Date()
@@ -46,32 +104,72 @@ export default function ChatPage() {
     setInput("");
     setIsLoading(true);
     
-    // Simulate AI response
-    setTimeout(() => {
-      // Sample responses based on message content
-      let responseText = "I'll need to analyze that further. Could you provide more details?";
+    try {
+      // Send message to API
+      const response = await fetch(`http://localhost:8000/api/chat/${sessionId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input
+        }),
+      });
       
-      if (input.toLowerCase().includes("reentrancy")) {
-        responseText = "Reentrancy vulnerabilities occur when external contract calls are allowed to make new calls back to the calling contract before the first execution is complete. This allows an attacker to recursively call functions before state updates, potentially draining funds. To prevent this, always follow the checks-effects-interactions pattern and consider using a reentrancy guard.";
-      } else if (input.toLowerCase().includes("unchecked") || input.toLowerCase().includes("return value")) {
-        responseText = "Unchecked external call vulnerabilities happen when your contract makes external calls without checking the return values. This can lead to silent failures and unexpected behavior. Always check return values of functions like send() and transfer(), and handle failures appropriately.";
-      } else if (input.toLowerCase().includes("timestamp")) {
-        responseText = "Timestamp dependence becomes an issue when contracts rely on block.timestamp for critical timing decisions. Miners can manipulate timestamps slightly (by several seconds), which could affect the outcome in time-sensitive operations. For time-dependent logic, consider using block numbers instead, or ensure that the logic isn't vulnerable to small timestamp manipulations.";
-      } else if (input.toLowerCase().includes("fix") || input.toLowerCase().includes("solution")) {
-        responseText = "To fix the vulnerabilities in this contract:\n\n1. For the reentrancy issue, make sure to update state variables before making external calls.\n\n2. For unchecked external calls, verify the return values and handle failures.\n\n3. For timestamp dependence, avoid relying on precise timestamps for critical functions.";
+      if (!response.ok) {
+        throw new Error(`Failed to send message: ${response.statusText}`);
       }
       
+      const data = await response.json();
+      
+      // Add assistant response to UI
       const assistantMessage: Message = {
-        id: Date.now().toString(),
+        id: `response-${messageId}`,
         role: "assistant",
-        content: responseText,
-        timestamp: new Date()
+        content: data.message,
+        timestamp: new Date(data.timestamp || Date.now())
       };
       
       setMessages((prev) => [...prev, assistantMessage]);
+      
+    } catch (err) {
+      console.error('Error sending message:', err);
+      
+      // Add error message to UI
+      const errorMessage: Message = {
+        id: `error-${messageId}`,
+        role: "assistant",
+        content: `I'm sorry, there was an error processing your request. ${err instanceof Error ? err.message : "Please try again later."}`,
+        timestamp: new Date()
+      };
+      
+      setMessages((prev) => [...prev, errorMessage]);
+      
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
+  
+  if (error) {
+    return (
+      <div className="container mx-auto py-10 px-4">
+        <div className="max-w-4xl mx-auto bg-card border rounded-lg p-8 text-center">
+          <div className="text-destructive mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Chat Initialization Error</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Link to={`/report/${analysisId}`} className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">
+            Return to Audit Report
+          </Link>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto py-6 px-4">
@@ -86,7 +184,7 @@ export default function ChatPage() {
             <h1 className="text-xl font-bold">Security Assistant Chat</h1>
           </div>
           <div className="text-sm text-muted-foreground">
-            TokenSale.sol
+            {contractName}
           </div>
         </div>
         
@@ -150,12 +248,12 @@ export default function ChatPage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about vulnerabilities or security best practices..."
               className="flex-1 bg-muted rounded-l-md px-4 py-3 focus:outline-none"
-              disabled={isLoading}
+              disabled={isLoading || !sessionId}
             />
             <button
               type="submit"
               className="bg-primary text-primary-foreground px-4 py-3 rounded-r-md hover:bg-primary/90 disabled:opacity-50"
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || !sessionId}
             >
               <Send className="h-5 w-5" />
             </button>

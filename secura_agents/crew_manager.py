@@ -1,7 +1,7 @@
 from crewai import Crew, Process
 
 from secura_agents.contract_analyzer import ContractAnalyzerAgent
-from secura_agents.report_generator import ReportGeneratorAgent, generate_report
+from secura_agents.report_generator import ReportGeneratorAgent
 
 class SecuraCrew:
     def __init__(self):

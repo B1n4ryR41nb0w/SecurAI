@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import json
 import openai
 import datetime
+from typing import Dict, Any, List, Optional
+from pydantic import Field
 
 # Load environment variables
 load_dotenv()
@@ -12,16 +14,14 @@ load_dotenv()
 class ChatBotAgent(Agent):
     """Interactive chatbot for answering questions about smart contract audits."""
 
+    # Add fields that need to be set in __init__
+    client: Any = Field(default=None, description="OpenAI client")
+    conversation_context: Dict = Field(default_factory=dict, description="Conversation history")
+
     def __init__(self):
         # Check for OpenAI API key
         if not os.getenv("OPENAI_API_KEY"):
             raise EnvironmentError("OPENAI_API_KEY not found in environment variables")
-
-        # Initialize OpenAI client
-        self.client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-        # Initialize context for conversation history
-        self.conversation_context = {}
 
         # Initialize the agent
         super().__init__(
@@ -33,6 +33,9 @@ class ChatBotAgent(Agent):
             verbose=True,
             llm=None  # We'll handle the LLM calls directly for more control
         )
+
+        # Initialize OpenAI client
+        self.client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def set_audit_context(self, session_id, analysis_results):
         """Set the current audit results as context for the chatbot."""
@@ -50,7 +53,7 @@ class ChatBotAgent(Agent):
 
         The detailed findings are: {json.dumps(analysis_results.get('vulnerabilities', []), indent=2)}
 
-        The contract includes these functions: {', '.join(analysis_results.get('functions', []))}
+        The contract includes these functions: {', '.join(f["name"] for f in analysis_results.get('functions', []))}
 
         Answer questions about this audit in a helpful, educational manner. If asked about vulnerabilities
         not found in this audit, you can provide general information but clarify that they weren't detected
@@ -161,53 +164,3 @@ class ChatBotAgent(Agent):
 
 # Create agent instance
 chat_bot = ChatBotAgent()
-
-if __name__ == "__main__":
-    # For testing: Create a sample analysis result
-    sample_analysis = {
-        "contract_stats": {"name": "TestContract"},
-        "vulnerability_summary": {
-            "total": 3,
-            "by_severity": {"High": 1, "Medium": 1, "Low": 1}
-        },
-        "vulnerabilities": [
-            {
-                "type": "Reentrancy",
-                "description": "The contract does not follow the checks-effects-interactions pattern",
-                "location": "TestContract.sol:42",
-                "severity": "High",
-                "confidence": 0.95
-            },
-            {
-                "type": "Unchecked Send",
-                "description": "The return value of send() is not checked",
-                "location": "TestContract.sol:67",
-                "severity": "Medium",
-                "confidence": 0.87
-            },
-            {
-                "type": "Timestamp Dependence",
-                "description": "The contract uses block.timestamp as part of its logic",
-                "location": "TestContract.sol:23",
-                "severity": "Low",
-                "confidence": 0.91
-            }
-        ],
-        "functions": ["transfer", "withdraw", "deposit"]
-    }
-
-    # Test the chatbot
-    session_id = "test_session_123"
-
-    # Set up the session
-    chat_bot.set_audit_context(session_id, sample_analysis)
-
-    # Ask a question
-    response = chat_bot.chat(session_id, "What vulnerabilities were found in this contract?")
-    print(f"Q: What vulnerabilities were found in this contract?")
-    print(f"A: {response.get('message')}")
-
-    # Ask about a specific vulnerability
-    response = chat_bot.chat(session_id, "Can you explain the reentrancy vulnerability in more detail?")
-    print(f"\nQ: Can you explain the reentrancy vulnerability in more detail?")
-    print(f"A: {response.get('message')}")

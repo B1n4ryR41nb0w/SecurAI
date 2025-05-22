@@ -40,7 +40,7 @@ This uses the ContractAnalyzer agent to run Slither and extract functions/vulner
 
 You can also run the analysis on the contract by running:
 ```bash
-python scriopts/crew_manager.py
+python scripts/crew_manager.py
 ```
 
 (you have to put contract in data folder where Vulnerable.sol is).

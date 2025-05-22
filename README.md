@@ -24,7 +24,13 @@
 
 ## 📋 Usage
 
-### Run a Basic Audit
+### Set up & Audit run 
+
+Before running audit, install required dependencies for python with: 
+
+```bash
+pip install 
+```
 
 Analyze a Contract:
 ```bash
@@ -32,6 +38,26 @@ python scripts/run_audit.py --contract ./ERC20.sol
 ```
 This uses the ContractAnalyzer agent to run Slither and extract functions/vulnerabilities.
 
+You can also run the analysis on the contract by running:
+```bash
+python scriopts/crew_manager.py
+```
+
+(you have to put contract in data folder where Vulnerable.sol is).
+
+For running backend go to api folder and run a simple backend 
+```bash
+python api/simple_api.py
+```
+
+For running frontend, go to frontend folder and do:
+
+```bash
+npm install 
+npm run dev 
+```
+
+Note: at the moment of writing this readme frontend is very basic and just covers needed elements without much styling. 
 
 ## 🤝 Contributing
 

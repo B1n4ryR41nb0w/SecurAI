@@ -1,28 +1,19 @@
 # SecurAI: Smart Contract Audit Agent 
 
-
-
 **SecurAI** is an AI-powered smart contract auditing tool designed to detect vulnerabilities, classify their severity, explain issues with real-world examples, suggest fixes, and generate comprehensive reports. Built with a multi-agent system using [CrewAI](https://github.com/joaomdmoura/crewAI), SecurAI aims to compete with professional auditors in platforms like Sherlock and Code4rena by May 2025.
 
-Contract → Slither/Mythril → Bug Classifier (DistilRoBERTa) → RAG Expert → Fix Proposal Generator (DeepSeek) → Critic (Claude 3.5 Sonnet) → Report Generator (GPT-4o Mini) → Enhanced Report
-                                          ↓                        ↓                           ↓                            ↓
-                                   Adds context,           Generates secure         Reviews and validates        Creates polished
-                                   examples,               code fixes and           proposed fixes,              reports with fixes,
-                                   real-world impact       mitigation               suggests improvements,       explanations, and
-                                   data, specific          strategies               ensures best practices       recommendations
-                                   mitigations
 ### Flow Summary:
 
 Using [CrewAI](https://github.com/joaomdmoura/crewAI) with the following roles:
 
-Contract Analysis - Slither/Mythril detect vulnerabilities
-Bug Classification - DistilRoBERTa prioritizes by severity
-Knowledge Enhancement - RAG Expert adds context and examples
-Developer Insight - Gpt-4o-mini to assess code quality 
-Fix Generation - DeepSeek proposes secure code fixes
-Fix Review - Claude 3.5 Sonnet critiques and validates proposed fixes
-Report Creation - GPT-4o Mini generates comprehensive audit report
-Enhanced Output - Final report with validated vulnerabilities and reviewed fixes
+- **Contract Analysis** - Slither/Mythril detect vulnerabilities
+- **Bug Classification** - DistilRoBERTa prioritizes by severity
+- **Knowledge Enhancement** - RAG Expert adds context and examples
+- **Developer Insight** - Gpt-4o-mini to assess code quality 
+- **Fix Generation** - DeepSeek proposes secure code fixes
+- **Fix Review** - Claude 3.5 Sonnet critiques and validates proposed fixes
+- **Report Creation** - GPT-4o Mini generates comprehensive audit report
+- **Enhanced Output** - Final report with validated vulnerabilities and reviewed fixes
 
 ## 🌟 Features (Current & Planned)
 
@@ -54,7 +45,7 @@ Before running audit, install required dependencies for python with:
 pip install 
 ```
 
-First you need to train your DistilRoBERTa model
+First you need to train your DistilRoBERTa model:
 
 ```bash
 python secura_agents/bug_classifier.py

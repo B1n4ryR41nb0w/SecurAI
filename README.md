@@ -32,18 +32,21 @@ Before running audit, install required dependencies for python with:
 pip install 
 ```
 
-Analyze a Contract:
-```bash
-python scripts/run_audit.py --contract ./ERC20.sol
-```
-This uses the ContractAnalyzer agent to run Slither and extract functions/vulnerabilities.
+First you need to train your DistilRoBERTa model
 
-You can also run the analysis on the contract by running:
 ```bash
-python scripts/crew_manager.py
+python secura_agents/bug_classifier.py
 ```
+
+Analyze a Contract:
+
+```bash
+python -c "from secura_agents.contract_analyzer import analyze; result = analyze('data/test_contracts/reentrancy_test.sol'); print('FAILED AT:', result.get('failed_step', 'Success'))"
+```
+This uses the ContractAnalyzer agent to run Slither/Bug Classifier/Rag Expert and extract functions/vulnerabilities.
 
 (you have to put contract in data folder where Vulnerable.sol is).
+
 
 For running backend go to api folder and run a simple backend 
 ```bash

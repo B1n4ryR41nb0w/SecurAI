@@ -4,6 +4,9 @@
 
 ### Flow Summary
 
+<img width="706" alt="Screenshot 2025-05-27 at 0 11 57" src="https://github.com/user-attachments/assets/d1708fa5-876f-43ab-92ff-50f7583c9c2c" />
+
+
 Using [CrewAI](https://github.com/joaomdmoura/crewAI) with the following roles:
 
 - **Contract Analysis** - Slither/Mythril detect vulnerabilities

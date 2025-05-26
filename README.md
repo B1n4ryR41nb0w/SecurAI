@@ -4,7 +4,8 @@
 
 ### Flow Summary
 
-<img width="706" alt="Screenshot 2025-05-27 at 0 11 57" src="https://github.com/user-attachments/assets/d1708fa5-876f-43ab-92ff-50f7583c9c2c" />
+<img width="1000" alt="Screenshot 2025-05-27 at 0 24 57" src="https://github.com/user-attachments/assets/405dca5b-cb16-4ae3-8606-923343547800" />
+
 
 
 Using [CrewAI](https://github.com/joaomdmoura/crewAI) with the following roles:

@@ -1,8 +1,8 @@
 # SecurAI: Smart Contract Audit Agent 
 
-**SecurAI** is an AI-powered smart contract auditing tool designed to detect vulnerabilities, classify their severity, explain issues with real-world examples, suggest fixes, and generate comprehensive reports. Built with a multi-agent system using [CrewAI](https://github.com/joaomdmoura/crewAI), SecurAI aims to compete with professional auditors in platforms like Sherlock and Code4rena by May 2025.
+**SecurAI** is an AI-powered smart contract auditing tool designed to detect vulnerabilities, classify their severity, explain issues with real-world examples, suggest fixes, and generate comprehensive reports. Built with a multi-agent system using [CrewAI](https://github.com/joaomdmoura/crewAI), SecurAI aims to compete with professional auditors in platforms like Sherlock and Code4rena as well as Audit4rena by Nethermind. 
 
-### Flow Summary:
+### Flow Summary
 
 Using [CrewAI](https://github.com/joaomdmoura/crewAI) with the following roles:
 
@@ -21,14 +21,12 @@ Using [CrewAI](https://github.com/joaomdmoura/crewAI) with the following roles:
 - **Smart Contract Analysis**: Uses [Slither](https://github.com/crytic/slither) to detect vulnerabilities in Solidity contracts (e.g., reentrancy, unchecked calls).
 - **Multi-Agent System**: Leverages CrewAI to orchestrate agents for analysis, classification, explanation, fix proposals, and reporting.
 - **Foundation for RAG & Classification**: Preparing to integrate DistilRoBERTa for severity classification and LlamaIndex for Retrieval-Augmented Generation (RAG) explanations.
-
-### Planned 
 - **Vulnerability Classification**: Prioritize findings (Critical, High, Medium, Low) using DistilRoBERTa.
 - **RAG-Powered Explanations**: Explain vulnerabilities with real-world examples using Llama-70B + LlamaIndex + Weaviate.
 - **Audit Reports**: Generate structured reports with GPT-4o Mini.
 - **End-to-End Workflow**: Upload a contract → Detect vulnerabilities → Classify → Explain → Report.
 
-### Future 
+### Planned
 - **Advanced Analysis**: Integrate Mythril (symbolic execution) and Echidna (fuzzing) for deeper vulnerability detection.
 - **Fix Proposals**: Suggest secure fixes with DeepSeek-Coder-33B, reviewed by Claude 3.5 Sonnet.
 - **Interactive Chatbot**: Answer user queries with Mixtral 8x22B.

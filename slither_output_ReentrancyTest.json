@@ -1,0 +1,435 @@
+{
+  "success": true,
+  "error": null,
+  "results": {
+    "detectors": [
+      {
+        "elements": [
+          {
+            "type": "function",
+            "name": "withdraw",
+            "source_mapping": {
+              "start": 203,
+              "length": 250,
+              "filename_relative": "data/test_contracts/reentrancy_test.sol",
+              "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+              "filename_short": "data/test_contracts/reentrancy_test.sol",
+              "is_dependency": false,
+              "lines": [
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18
+              ],
+              "starting_column": 5,
+              "ending_column": 6
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "ReentrancyTest",
+                "source_mapping": {
+                  "start": 25,
+                  "length": 430,
+                  "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                  "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                  "filename_short": "data/test_contracts/reentrancy_test.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "withdraw()"
+            }
+          },
+          {
+            "type": "node",
+            "name": "(success,None) = msg.sender.call{value: amount}()",
+            "source_mapping": {
+              "start": 325,
+              "length": 52,
+              "filename_relative": "data/test_contracts/reentrancy_test.sol",
+              "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+              "filename_short": "data/test_contracts/reentrancy_test.sol",
+              "is_dependency": false,
+              "lines": [
+                14
+              ],
+              "starting_column": 9,
+              "ending_column": 61
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "function",
+                "name": "withdraw",
+                "source_mapping": {
+                  "start": 203,
+                  "length": 250,
+                  "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                  "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                  "filename_short": "data/test_contracts/reentrancy_test.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18
+                  ],
+                  "starting_column": 5,
+                  "ending_column": 6
+                },
+                "type_specific_fields": {
+                  "parent": {
+                    "type": "contract",
+                    "name": "ReentrancyTest",
+                    "source_mapping": {
+                      "start": 25,
+                      "length": 430,
+                      "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                      "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                      "filename_short": "data/test_contracts/reentrancy_test.sol",
+                      "is_dependency": false,
+                      "lines": [
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                        16,
+                        17,
+                        18,
+                        19
+                      ],
+                      "starting_column": 1,
+                      "ending_column": 2
+                    }
+                  },
+                  "signature": "withdraw()"
+                }
+              }
+            },
+            "additional_fields": {
+              "underlying_type": "external_calls"
+            }
+          },
+          {
+            "type": "node",
+            "name": "balances[msg.sender] = 0",
+            "source_mapping": {
+              "start": 422,
+              "length": 24,
+              "filename_relative": "data/test_contracts/reentrancy_test.sol",
+              "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+              "filename_short": "data/test_contracts/reentrancy_test.sol",
+              "is_dependency": false,
+              "lines": [
+                17
+              ],
+              "starting_column": 9,
+              "ending_column": 33
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "function",
+                "name": "withdraw",
+                "source_mapping": {
+                  "start": 203,
+                  "length": 250,
+                  "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                  "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                  "filename_short": "data/test_contracts/reentrancy_test.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18
+                  ],
+                  "starting_column": 5,
+                  "ending_column": 6
+                },
+                "type_specific_fields": {
+                  "parent": {
+                    "type": "contract",
+                    "name": "ReentrancyTest",
+                    "source_mapping": {
+                      "start": 25,
+                      "length": 430,
+                      "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                      "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                      "filename_short": "data/test_contracts/reentrancy_test.sol",
+                      "is_dependency": false,
+                      "lines": [
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                        16,
+                        17,
+                        18,
+                        19
+                      ],
+                      "starting_column": 1,
+                      "ending_column": 2
+                    }
+                  },
+                  "signature": "withdraw()"
+                }
+              }
+            },
+            "additional_fields": {
+              "underlying_type": "variables_written",
+              "variable_name": "balances"
+            }
+          }
+        ],
+        "description": "Reentrancy in ReentrancyTest.withdraw() (data/test_contracts/reentrancy_test.sol#10-18):\n\tExternal calls:\n\t- (success,None) = msg.sender.call{value: amount}() (data/test_contracts/reentrancy_test.sol#14)\n\tState variables written after the call(s):\n\t- balances[msg.sender] = 0 (data/test_contracts/reentrancy_test.sol#17)\n\tReentrancyTest.balances (data/test_contracts/reentrancy_test.sol#4) can be used in cross function reentrancies:\n\t- ReentrancyTest.balances (data/test_contracts/reentrancy_test.sol#4)\n\t- ReentrancyTest.deposit() (data/test_contracts/reentrancy_test.sol#6-8)\n\t- ReentrancyTest.withdraw() (data/test_contracts/reentrancy_test.sol#10-18)\n",
+        "markdown": "Reentrancy in [ReentrancyTest.withdraw()](data/test_contracts/reentrancy_test.sol#L10-L18):\n\tExternal calls:\n\t- [(success,None) = msg.sender.call{value: amount}()](data/test_contracts/reentrancy_test.sol#L14)\n\tState variables written after the call(s):\n\t- [balances[msg.sender] = 0](data/test_contracts/reentrancy_test.sol#L17)\n\t[ReentrancyTest.balances](data/test_contracts/reentrancy_test.sol#L4) can be used in cross function reentrancies:\n\t- [ReentrancyTest.balances](data/test_contracts/reentrancy_test.sol#L4)\n\t- [ReentrancyTest.deposit()](data/test_contracts/reentrancy_test.sol#L6-L8)\n\t- [ReentrancyTest.withdraw()](data/test_contracts/reentrancy_test.sol#L10-L18)\n",
+        "first_markdown_element": "data/test_contracts/reentrancy_test.sol#L10-L18",
+        "id": "346a1329d878f1cbf49251d27ad6f11db37be47cfd777890266c55701dd8a201",
+        "check": "reentrancy-eth",
+        "impact": "High",
+        "confidence": "Medium"
+      },
+      {
+        "elements": [
+          {
+            "type": "pragma",
+            "name": "^0.8.0",
+            "source_mapping": {
+              "start": 0,
+              "length": 23,
+              "filename_relative": "data/test_contracts/reentrancy_test.sol",
+              "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+              "filename_short": "data/test_contracts/reentrancy_test.sol",
+              "is_dependency": false,
+              "lines": [
+                1
+              ],
+              "starting_column": 1,
+              "ending_column": 24
+            },
+            "type_specific_fields": {
+              "directive": [
+                "solidity",
+                "^",
+                "0.8",
+                ".0"
+              ]
+            }
+          }
+        ],
+        "description": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- ^0.8.0 (data/test_contracts/reentrancy_test.sol#1)\n",
+        "markdown": "Version constraint ^0.8.0 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess\n\t- AbiReencodingHeadOverflowWithStaticArrayCleanup\n\t- DirtyBytesArrayToStorage\n\t- DataLocationChangeInInternalOverride\n\t- NestedCalldataArrayAbiReencodingSizeValidation\n\t- SignedImmutables\n\t- ABIDecodeTwoDimensionalArrayMemory\n\t- KeccakCaching.\nIt is used by:\n\t- [^0.8.0](data/test_contracts/reentrancy_test.sol#L1)\n",
+        "first_markdown_element": "data/test_contracts/reentrancy_test.sol#L1",
+        "id": "04a01534e4a15d2a80a4da1560c57511b3ab50813cf229cb21b835ac5cf72d0a",
+        "check": "solc-version",
+        "impact": "Informational",
+        "confidence": "High"
+      },
+      {
+        "elements": [
+          {
+            "type": "function",
+            "name": "withdraw",
+            "source_mapping": {
+              "start": 203,
+              "length": 250,
+              "filename_relative": "data/test_contracts/reentrancy_test.sol",
+              "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+              "filename_short": "data/test_contracts/reentrancy_test.sol",
+              "is_dependency": false,
+              "lines": [
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18
+              ],
+              "starting_column": 5,
+              "ending_column": 6
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "contract",
+                "name": "ReentrancyTest",
+                "source_mapping": {
+                  "start": 25,
+                  "length": 430,
+                  "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                  "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                  "filename_short": "data/test_contracts/reentrancy_test.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19
+                  ],
+                  "starting_column": 1,
+                  "ending_column": 2
+                }
+              },
+              "signature": "withdraw()"
+            }
+          },
+          {
+            "type": "node",
+            "name": "(success,None) = msg.sender.call{value: amount}()",
+            "source_mapping": {
+              "start": 325,
+              "length": 52,
+              "filename_relative": "data/test_contracts/reentrancy_test.sol",
+              "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+              "filename_short": "data/test_contracts/reentrancy_test.sol",
+              "is_dependency": false,
+              "lines": [
+                14
+              ],
+              "starting_column": 9,
+              "ending_column": 61
+            },
+            "type_specific_fields": {
+              "parent": {
+                "type": "function",
+                "name": "withdraw",
+                "source_mapping": {
+                  "start": 203,
+                  "length": 250,
+                  "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                  "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                  "filename_short": "data/test_contracts/reentrancy_test.sol",
+                  "is_dependency": false,
+                  "lines": [
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18
+                  ],
+                  "starting_column": 5,
+                  "ending_column": 6
+                },
+                "type_specific_fields": {
+                  "parent": {
+                    "type": "contract",
+                    "name": "ReentrancyTest",
+                    "source_mapping": {
+                      "start": 25,
+                      "length": 430,
+                      "filename_relative": "data/test_contracts/reentrancy_test.sol",
+                      "filename_absolute": "/Users/murluki/Desktop/Projects/Secura/data/test_contracts/reentrancy_test.sol",
+                      "filename_short": "data/test_contracts/reentrancy_test.sol",
+                      "is_dependency": false,
+                      "lines": [
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                        16,
+                        17,
+                        18,
+                        19
+                      ],
+                      "starting_column": 1,
+                      "ending_column": 2
+                    }
+                  },
+                  "signature": "withdraw()"
+                }
+              }
+            }
+          }
+        ],
+        "description": "Low level call in ReentrancyTest.withdraw() (data/test_contracts/reentrancy_test.sol#10-18):\n\t- (success,None) = msg.sender.call{value: amount}() (data/test_contracts/reentrancy_test.sol#14)\n",
+        "markdown": "Low level call in [ReentrancyTest.withdraw()](data/test_contracts/reentrancy_test.sol#L10-L18):\n\t- [(success,None) = msg.sender.call{value: amount}()](data/test_contracts/reentrancy_test.sol#L14)\n",
+        "first_markdown_element": "data/test_contracts/reentrancy_test.sol#L10-L18",
+        "id": "7164f41ffa6b36ba2526f9430be9498bfc0211d8ac8c20c50bac3e70635a424d",
+        "check": "low-level-calls",
+        "impact": "Informational",
+        "confidence": "High"
+      }
+    ]
+  }
+}

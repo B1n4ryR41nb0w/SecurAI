@@ -1,0 +1,128 @@
+# Smart Contract Security Knowledge Base
+
+## Reentrancy Vulnerabilities
+
+Reentrancy is one of the most critical vulnerabilities in smart contracts. It occurs when a contract makes an external call to another contract before finishing its own state updates.
+
+### The DAO Attack (2016)
+The most famous reentrancy attack was against The DAO, resulting in the loss of 3.6 million ETH (worth ~$50M at the time). The attack exploited a flaw in the splitDAO function that allowed recursive calls before balance updates.
+
+Technical Details:
+- External calls can trigger fallback functions in recipient contracts
+- Malicious contracts can re-enter the original function
+- State changes after external calls are vulnerable
+- Gas limits can be bypassed through recursive calls
+
+### Mitigation Strategies:
+1. Checks-Effects-Interactions Pattern: Always update state before external calls
+2. ReentrancyGuard: Use OpenZeppelin's nonReentrant modifier
+3. Pull Payment Pattern: Let users withdraw rather than pushing payments
+4. Low-level call safety: Always check return values
+
+## Integer Overflow/Underflow
+
+Before Solidity 0.8.0, arithmetic operations could silently overflow or underflow, leading to unexpected behavior and potential exploits.
+
+### Historical Attacks:
+- BeautyChain (BEC) Token: Overflow in batchTransfer function allowed unlimited token creation
+- SMT Token: Similar overflow vulnerability exploited for massive token generation
+- Multiple DeFi protocols affected by calculation errors
+
+### Technical Analysis:
+- uint256 maximum: 2^256 - 1
+- Overflow: max_value + 1 = 0
+- Underflow: 0 - 1 = max_value
+- Impact on balances, supplies, and access controls
+
+### Prevention:
+- Use Solidity 0.8+ with built-in overflow protection
+- SafeMath library for older versions
+- Input validation and bounds checking
+- Comprehensive testing with edge cases
+
+## Access Control Vulnerabilities
+
+Improper access control is a leading cause of smart contract exploits, allowing unauthorized users to execute privileged functions.
+
+### Common Patterns:
+1. Missing onlyOwner modifiers on critical functions
+2. Weak authentication mechanisms
+3. Privilege escalation through delegation
+4. Default function visibility issues
+
+### Notable Incidents:
+- Parity Multi-sig Wallet (2017): Library destruction through delegatecall
+- Various DeFi protocols: Admin key compromises
+- NFT contracts: Unauthorized minting functions
+
+### Best Practices:
+- OpenZeppelin AccessControl for role-based permissions
+- Multi-signature wallets for critical operations
+- Time-locked administrative changes
+- Principle of least privilege
+- Regular access control audits
+
+## Oracle Manipulation
+
+Price oracle manipulation has become increasingly common, especially in DeFi protocols that rely on external price feeds.
+
+### Attack Vectors:
+1. Flash loan price manipulation
+2. Sandwich attacks on oracle updates
+3. Governance token price manipulation
+4. Cross-chain oracle delays and arbitrage
+
+### Famous Exploits:
+- bZx Protocol (2020): Flash loan oracle manipulation for $1M+
+- Harvest Finance (2020): $34M lost to flash loan attack
+- Cream Finance: Multiple oracle-related exploits
+
+### Defense Mechanisms:
+- Multiple oracle sources and aggregation
+- Time-weighted average pricing (TWAP)
+- Circuit breakers for extreme price movements
+- Chainlink decentralized oracles
+- Sanity checks and price deviation limits
+
+## Unchecked Return Values
+
+Many smart contracts fail to check return values of external calls, leading to silent failures and unexpected behavior.
+
+### Risk Factors:
+- ERC20 tokens with non-standard return values
+- Low-level calls without success checks
+- External contract interaction assumptions
+- Gas limit issues with external calls
+
+### Mitigation:
+- Always check return values of external calls
+- Use SafeERC20 for token interactions
+- Implement proper error handling
+- Consider call failures in business logic
+
+## Gas Limit and DoS Attacks
+
+Gas-related vulnerabilities can lead to denial of service and failed transactions.
+
+### Common Issues:
+1. Unbounded loops in state-changing functions
+2. Gas limit DoS through external calls
+3. Block gas limit exceeded in batch operations
+4. Gas price manipulation attacks
+
+### Prevention Strategies:
+- Implement pagination for large operations
+- Gas estimation and limit checks
+- Pull payment patterns to avoid push failures
+- Circuit breakers for gas-intensive operations
+
+## Best Practices Summary
+
+1. **Security by Design**: Consider security from the initial architecture
+2. **Defense in Depth**: Multiple layers of security controls
+3. **Fail Safely**: Design systems to fail in a secure state
+4. **Principle of Least Privilege**: Minimal necessary permissions
+5. **Regular Audits**: Professional security reviews
+6. **Continuous Monitoring**: Real-time threat detection
+7. **Incident Response**: Prepared response procedures
+8. **Community Engagement**: Bug bounty programs and responsible disclosure

@@ -99,7 +99,7 @@ async def get_analysis(analysis_id: str):
         raise HTTPException(status_code=404, detail="Analysis not found")
 
 
-@app.get("/api/test-analysis")
+@app.get("/api/tests-analysis")
 async def test_analysis():
     """Run analysis on the built-in Vulnerable.sol file."""
     try:
@@ -112,7 +112,7 @@ async def test_analysis():
                 "error": f"Test contract not found at {test_contract}"
             }
 
-        analysis_id = "test-analysis"
+        analysis_id = "tests-analysis"
 
         # Run full audit
         result = run_audit(str(test_contract))

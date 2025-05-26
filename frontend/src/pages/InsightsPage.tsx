@@ -1,161 +1,246 @@
-import { useState, useEffect } from "react"
-import { useParams, Link } from "react-router-dom"
-import { ArrowLeft, Shield, Star, Code2, Lock, Fuel, Lightbulb, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  Shield,
+  ArrowLeft,
+  Code,
+  Download,
+  Lightbulb,
+  FileCode,
+  AlertTriangle,
+  MessageCircle,
+  RefreshCw,
+} from "lucide-react";
 
-const mockInsights = {
-  contractName: "TokenSale.sol",
-  overallReview: "This contract shows solid fundamentals but has several concerning patterns that could lead to security issues. I particularly like your use of the Ownable pattern for access control, but the contract is missing critical protections against reentrancy and other common vulnerabilities.",
-  sections: {
-    codeQuality: {
-      title: "Code Quality",
-      icon: Code2,
-      content: "The code is generally well-structured with clear function names and good variable naming. However, there's a lack of consistent documentation, with some functions missing NatSpec comments entirely. The use of constants for configuration is a good practice, but there are several magic numbers in the code that should be replaced with named constants. The contract could benefit from better modularization, with some functions being too large and handling multiple responsibilities."
-    },
-    securityConsiderations: {
-      title: "Security Considerations",
-      icon: Lock,
-      content: "Beyond the vulnerabilities already identified, there are several other security considerations:\n\n1. The contract lacks input validation in several places, particularly around user-provided inputs.\n\n2. There's no protection against front-running attacks in the price-sensitive functions.\n\n3. The contract uses block.timestamp for time-sensitive operations, which can be manipulated slightly by miners.\n\n4. There are no rate limiting mechanisms to prevent abuse of certain functions."
-    },
-    gasOptimization: {
-      title: "Gas Optimization",
-      icon: Fuel,
-      content: "There are several opportunities for gas optimization:\n\n1. Use uint256 instead of smaller integer types that don't save gas but increase complexity.\n\n2. Remove redundant storage reads by caching storage variables in memory when used multiple times within a function.\n\n3. Use unchecked blocks for arithmetic operations where overflow/underflow is not a concern, particularly in for-loops.\n\n4. Consider batching operations to reduce the number of state changes and thus save gas."
-    },
-    improvementSuggestions: {
-      title: "Improvement Suggestions",
-      icon: Lightbulb,
-      content: "Here are some suggested improvements beyond fixing the identified vulnerabilities:\n\n1. Implement the checks-effects-interactions pattern to prevent reentrancy attacks.\n\n```solidity\nfunction withdraw() public {\n    uint balance = balances[msg.sender];\n    require(balance > 0);\n    \n    // Update state before interaction\n    balances[msg.sender] = 0;\n    \n    // Then perform external call\n    (bool success, ) = msg.sender.call{value: balance}(\"\");\n    require(success, \"Transfer failed\");\n}\n```\n\n2. Add proper events for all state changes to improve off-chain monitoring capabilities.\n\n3. Consider using the OpenZeppelin SafeERC20 library for safer token handling.\n\n4. Implement more granular access control using role-based permissions instead of just owner functions."
-    }
-  }
-};
+interface InsightsData {
+  contract_name: string;
+  insights: string;
+  timestamp: string;
+  error?: boolean;
+}
 
 export default function InsightsPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
   const [loading, setLoading] = useState(true);
-  const [insights, setInsights] = useState<typeof mockInsights | null>(null);
-  
-  // Simulate API call to fetch insights
-  useEffect(() => {
-    const fetchInsights = async () => {
-      setLoading(true);
-      
-      // In a real app, fetch the insights from your API
-      // const response = await fetch(`/api/insights/${analysisId}`);
-      // const data = await response.json();
-      
-      // Using mock data for demonstration
-      setTimeout(() => {
-        setInsights(mockInsights);
-        setLoading(false);
-      }, 1500);
-    };
+  const [insights, setInsights] = useState<InsightsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+
+  const fetchInsights = async (forceRegenerate = false) => {
+    if (!analysisId) return;
     
+    setLoading(!forceRegenerate); // Don't show full loading if regenerating
+    setRegenerating(forceRegenerate);
+    setError(null);
+    
+    try {
+      let response;
+      
+      if (forceRegenerate) {
+        // Force regeneration by calling POST directly
+        response = await fetch("http://localhost:8000/api/insights", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            analysis_id: analysisId,
+          }),
+        });
+      } else {
+        // Try to get existing insights first
+        response = await fetch(`http://localhost:8000/api/insights/${analysisId}`);
+        
+        // If not found, create new insights
+        if (response.status === 404) {
+          response = await fetch("http://localhost:8000/api/insights", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              analysis_id: analysisId,
+            }),
+          });
+        }
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Failed to ${forceRegenerate ? 'regenerate' : 'fetch'} insights: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error("Failed to generate insights");
+      }
+      
+      setInsights(data);
+    } catch (err) {
+      console.error("Error with insights:", err);
+      setError(`Failed to ${forceRegenerate ? 'regenerate' : 'load'} developer insights: ${err instanceof Error ? err.message : String(err)}`);
+      if (!forceRegenerate) {
+        setInsights(null);
+      }
+    } finally {
+      setLoading(false);
+      setRegenerating(false);
+    }
+  };
+
+  useEffect(() => {
     fetchInsights();
   }, [analysisId]);
-  
+
+  const handleRegenerate = () => {
+    fetchInsights(true);
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
+      <div className="flex justify-center items-center min-h-[70vh]">
         <div className="flex flex-col items-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">Loading developer insights...</p>
+          <div className="mb-4 h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <h3 className="text-xl font-medium mb-2">Generating Developer Insights</h3>
+          <p className="text-muted-foreground">Analyzing code patterns and best practices...</p>
         </div>
       </div>
     );
   }
-  
-  if (!insights) {
+
+  if (error && !insights) {
     return (
       <div className="container mx-auto py-10 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-card border rounded-lg p-8 text-center">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Insights Not Available</h2>
             <p className="text-muted-foreground mb-6">
-              We couldn't generate developer insights for this contract.
+              {error || "We couldn't generate developer insights for this contract."}
             </p>
-            <Link 
-              to={`/report/${analysisId}`}
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-            >
-              Back to Report
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button 
+                onClick={() => fetchInsights()}
+                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+              >
+                Try Again
+              </button>
+              <Link 
+                to={`/report/${analysisId}`} 
+                className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80"
+              >
+                Return to Audit Report
+              </Link>
+            </div>
           </div>
         </div>
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto py-10 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <Link to={`/report/${analysisId}`} className="mr-4">
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center mb-4 md:mb-0">
+            <Link 
+              to={`/report/${analysisId}`} 
+              className="mr-4 p-2 hover:bg-accent rounded-md transition-colors"
+              title="Back to Report"
+            >
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <Shield className="h-6 w-6 text-primary mr-2" />
-            <h1 className="text-2xl font-bold">Developer Insights</h1>
+            <Lightbulb className="h-8 w-8 text-primary mr-3" />
+            <div>
+              <h1 className="text-3xl font-bold">Developer Insights</h1>
+              <p className="text-muted-foreground">
+                {insights && new Date(insights.timestamp).toLocaleString()}
+              </p>
+            </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {insights.contractName}
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="inline-flex items-center justify-center px-4 py-2 bg-secondary text-secondary-foreground rounded-md font-medium hover:bg-secondary/80 disabled:opacity-50"
+              title="Regenerate insights"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${regenerating ? 'animate-spin' : ''}`} />
+              <span>{regenerating ? 'Regenerating...' : 'Regenerate'}</span>
+            </button>
+            <button className="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90">
+              <Download className="mr-2 h-4 w-4" />
+              <span>Download</span>
+            </button>
           </div>
         </div>
-        
-        {/* Overall Review */}
+
+        {/* Error banner (if regeneration failed but we still have old insights) */}
+        {error && insights && (
+          <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-destructive mr-2" />
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Contract Info */}
         <div className="bg-card border rounded-lg p-6 mb-8">
           <div className="flex items-start">
-            <Star className="h-6 w-6 text-yellow-500 mr-4 mt-1 flex-shrink-0" />
+            <FileCode className="h-6 w-6 text-primary mr-4 mt-1" />
             <div>
-              <h2 className="text-xl font-semibold mb-3">Overall Review</h2>
-              <p className="text-lg leading-relaxed">{insights.overallReview}</p>
+              <h2 className="text-xl font-semibold mb-2">
+                {insights?.contract_name || "Contract Analysis"}
+              </h2>
+              <div className="flex items-center">
+                <Code className="h-4 w-4 text-muted-foreground mr-2" />
+                <span className="text-sm text-muted-foreground">
+                  Developer-focused insights and optimization recommendations
+                </span>
+              </div>
             </div>
           </div>
         </div>
-        
-        {/* Sections */}
-        <div className="space-y-8">
-          {Object.entries(insights.sections).map(([key, section]) => (
-            <div key={key} className="bg-card border rounded-lg p-6">
-              <div className="flex items-start">
-                <section.icon className="h-6 w-6 text-primary mr-4 mt-1 flex-shrink-0" />
-                <div>
-                  <h2 className="text-xl font-semibold mb-3">{section.title}</h2>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {section.content.split('\n\n').map((paragraph, i) => {
-                      // Check if paragraph is a code block
-                      if (paragraph.startsWith("```") && paragraph.endsWith("```")) {
-                        const [, language, ...codeLines] = paragraph.split('\n');
-                        const code = codeLines.slice(0, -1).join('\n');
-                        
-                        return (
-                          <pre key={i} className="bg-background rounded-md p-4 my-4 overflow-auto">
-                            <code className="text-sm">{code}</code>
-                          </pre>
-                        );
-                      }
-                      
-                      return <p key={i} className="mb-4 leading-relaxed">{paragraph}</p>;
-                    })}
-                  </div>
-                </div>
-              </div>
+
+        {/* Insights Content */}
+        {insights && (
+          <div className="bg-card border rounded-lg p-6 mb-8">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: insights.insights
+                    .replace(/^# /gm, '<h1 class="text-2xl font-bold mb-4 text-foreground">')
+                    .replace(/^## /gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-foreground">')
+                    .replace(/^### /gm, '<h3 class="text-lg font-bold mt-5 mb-2 text-foreground">')
+                    .replace(/^#### /gm, '<h4 class="text-md font-bold mt-4 mb-2 text-foreground">')
+                    .replace(/```([^`]+)```/gs, '<pre class="bg-background p-4 rounded-md my-4 overflow-x-auto border"><code class="text-sm">$1</code></pre>')
+                    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold">$1</strong>')
+                    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+                    .replace(/\n\n/g, '</p><p class="mb-4 text-muted-foreground">')
+                    .replace(/^/, '<p class="mb-4 text-muted-foreground">')
+                    .replace(/$/, '</p>')
+                }}
+              />
             </div>
-          ))}
-        </div>
-        
-        {/* Actions */}
-        <div className="flex justify-between mt-8">
-          <Link 
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link
             to={`/report/${analysisId}`}
-            className="border border-input px-4 py-2 rounded-md hover:bg-accent"
+            className="inline-flex items-center justify-center px-6 py-3 bg-secondary text-secondary-foreground rounded-md font-medium hover:bg-secondary/80"
           >
-            Back to Report
+            <Shield className="mr-2 h-5 w-5" />
+            Back to Audit Report
           </Link>
-          <Link 
+          <Link
             to={`/chat/${analysisId}`}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+            className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90"
           >
+            <MessageCircle className="mr-2 h-5 w-5" />
             Chat with AI Assistant
           </Link>
         </div>

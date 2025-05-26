@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import torch
 from pathlib import Path
 import os
@@ -9,14 +8,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import pickle
 
-# Resolve project root (two levels up from this script)
-project_root = Path(os.path.dirname(os.path.abspath(__file__)))
+
+project_root = Path(os.path.dirname(os.path.abspath(__file__))).parent
 DATA_PATH = project_root / "data" / "classifier_data.csv"
-MODEL_OUTPUT_DIR = project_root / "models" / "distilroberta_bug_classifier"
+MODEL_OUTPUT_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "models" / "distilroberta_bug_classifier"
 LABEL_ENCODER_PATH = MODEL_OUTPUT_DIR / "label_encoder.pkl"
 
-# Ensure the model output directory exists
+
 MODEL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # Create a custom dataset class
 class VulnerabilityDataset(torch.utils.data.Dataset):
@@ -32,6 +32,7 @@ class VulnerabilityDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
+
 def compute_metrics(pred):
     """Compute evaluation metrics for the model."""
     labels = pred.label_ids
@@ -45,10 +46,12 @@ def compute_metrics(pred):
         'recall': recall
     }
 
+
 def prepare_dataset():
     """Load and preprocess the dataset for fine-tuning."""
     try:
         df = pd.read_csv(DATA_PATH)
+        print(f"✅ Dataset loaded from {DATA_PATH}")
     except FileNotFoundError:
         raise FileNotFoundError(f"Dataset not found at {DATA_PATH}. Please ensure classifier_data.csv exists.")
 
@@ -91,6 +94,7 @@ def prepare_dataset():
 
     return train_dataset, val_dataset
 
+
 def fine_tune_model():
     """Fine-tune DistilRoBERTa on the dataset."""
     # Load model with correct number of labels
@@ -106,10 +110,10 @@ def fine_tune_model():
     # Define training arguments
     training_args = TrainingArguments(
         output_dir=MODEL_OUTPUT_DIR / "checkpoints",
-        num_train_epochs=5,
+        num_train_epochs=3,  # Reduced for faster training
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
-        warmup_steps=500,
+        warmup_steps=100,
         weight_decay=0.01,
         logging_dir=MODEL_OUTPUT_DIR / "logs",
         logging_steps=10,
@@ -129,16 +133,17 @@ def fine_tune_model():
     )
 
     # Train the model
-    print("Starting model training...")
+    print("🏋️ Starting model training...")
     trainer.train()
 
     # Evaluate the model
     eval_result = trainer.evaluate()
-    print(f"Evaluation results: {eval_result}")
+    print(f"📊 Evaluation results: {eval_result}")
 
     # Save the fine-tuned model
     model.save_pretrained(MODEL_OUTPUT_DIR)
-    print(f"Model fine-tuned and saved to {MODEL_OUTPUT_DIR}")
+    print(f"✅ Model fine-tuned and saved to {MODEL_OUTPUT_DIR}")
+
 
 def classify_vulnerability(description, swc_id=None, title=None):
     """
@@ -197,21 +202,54 @@ def classify_vulnerability(description, swc_id=None, title=None):
 
     except Exception as e:
         print(f"Error in classify_vulnerability: {e}")
-        # Fallback result in case of errors
-        return {
-            "severity": "Low",
-            "confidence": 0.5,
-            "all_probabilities": {"Low": 0.5, "Medium": 0.3, "High": 0.2}
-        }
+        # Fallback with rule-based classification
+        description_lower = description.lower()
+        title_lower = (title or "").lower()
+
+        # Rule-based fallback
+        if any(word in description_lower or word in title_lower for word in
+               ['reentrancy', 'recursive', 'external call']):
+            return {"severity": "High", "confidence": 0.8,
+                    "all_probabilities": {"Low": 0.1, "Medium": 0.1, "High": 0.8}}
+        elif any(word in description_lower or word in title_lower for word in
+                 ['overflow', 'underflow', 'selfdestruct', 'suicide']):
+            return {"severity": "High", "confidence": 0.9,
+                    "all_probabilities": {"Low": 0.05, "Medium": 0.05, "High": 0.9}}
+        elif any(word in description_lower or word in title_lower for word in
+                 ['unchecked', 'return', 'failed call', 'dos']):
+            return {"severity": "Medium", "confidence": 0.7,
+                    "all_probabilities": {"Low": 0.2, "Medium": 0.6, "High": 0.2}}
+        elif any(word in description_lower or word in title_lower for word in
+                 ['pragma', 'compiler', 'deprecated', 'warning']):
+            return {"severity": "Low", "confidence": 0.8, "all_probabilities": {"Low": 0.7, "Medium": 0.2, "High": 0.1}}
+        else:
+            return {"severity": "Medium", "confidence": 0.5,
+                    "all_probabilities": {"Low": 0.3, "Medium": 0.4, "High": 0.3}}
+
 
 if __name__ == "__main__":
-    # Test the classifier with a sample vulnerability
+    print(f"📂 Looking for dataset at: {DATA_PATH}")
+    print(f"📂 Model will be saved to: {MODEL_OUTPUT_DIR}")
+
+    # Check if model exists, if not train it
+    if not (MODEL_OUTPUT_DIR / "pytorch_model.bin").exists() and not (MODEL_OUTPUT_DIR / "model.safetensors").exists():
+        print("🏋️ No trained model found. Training new model...")
+        try:
+            fine_tune_model()
+            print("✅ Model training completed!")
+        except Exception as e:
+            print(f"❌ Training failed: {e}")
+            print("📝 Make sure you have classifier_data.csv with enough data")
+    else:
+        print("✅ Trained model already exists")
+
+    # Test the classifier
     test_description = "The contract uses transfer() with a hardcoded gas value which may fail."
     result = classify_vulnerability(
         test_description,
         swc_id="SWC-134",
         title="Message call with hardcoded gas amount"
     )
-    print("\nTest Classification Result:")
+    print("\n🧪 Test Classification Result:")
     print(f"Severity: {result['severity']} (Confidence: {result['confidence']:.2%})")
     print("All probabilities:", result['all_probabilities'])

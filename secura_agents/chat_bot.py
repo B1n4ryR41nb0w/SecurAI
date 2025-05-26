@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 import json
 import openai
 import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from pydantic import Field
 
-# Load environment variables
+
 load_dotenv()
 
 

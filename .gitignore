@@ -25,4 +25,10 @@ data/slither-env
 
 node_modules/
 frontend/node_modules/
-**/node_modules/
+**/node_modules/# Model files and checkpoints
+secura_agents/models/
+*.pkl
+*.pt
+*.pth
+*.bin
+*.safetensors

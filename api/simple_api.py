@@ -10,7 +10,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
-
 from secura_agents.crew_manager import run_audit
 
 app = FastAPI()
@@ -28,18 +27,17 @@ app.add_middleware(
 analysis_results: Dict[str, Any] = {}
 
 
-# Function to get analysis results by ID
 def get_analysis_by_id(analysis_id: str) -> Dict[str, Any]:
     if analysis_id not in analysis_results:
         raise KeyError(f"Analysis not found: {analysis_id}")
     return analysis_results[analysis_id]
 
 
-# Import modules (no circular dependency)
+# Import routes
 from routes import chat
-from routes import insights
+from routes import insights  # Your existing insights route
 
-# Set the analysis getter function in the chat module
+# Set the analysis getter function in the modules
 chat.set_analysis_getter(get_analysis_by_id)
 insights.set_analysis_getter(get_analysis_by_id)
 
@@ -62,11 +60,14 @@ async def upload_contract(file: UploadFile = File(...)):
         print(f"Saved uploaded file to: {temp_path}")
 
         analysis_id = str(uuid.uuid4())
+
+        # Run full audit (this should now include insights if using the updated crew)
         result = run_audit(str(temp_path))
 
         if "error" in result:
             raise Exception(result["error"])
 
+        # Store comprehensive results
         analysis_results[analysis_id] = {
             "contract_name": file.filename,
             "contract_path": str(temp_path),
@@ -98,7 +99,7 @@ async def get_analysis(analysis_id: str):
         raise HTTPException(status_code=404, detail="Analysis not found")
 
 
-@app.get("/api/test-analysis")
+@app.get("/api/tests-analysis")
 async def test_analysis():
     """Run analysis on the built-in Vulnerable.sol file."""
     try:
@@ -111,7 +112,9 @@ async def test_analysis():
                 "error": f"Test contract not found at {test_contract}"
             }
 
-        analysis_id = "test-analysis"
+        analysis_id = "tests-analysis"
+
+        # Run full audit
         result = run_audit(str(test_contract))
 
         if "error" in result:

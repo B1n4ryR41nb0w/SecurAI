@@ -25,17 +25,13 @@ interface Vulnerability {
   details?: string;
   recommendation?: string;
   affectedFunctions?: string[];
-  // RAG Enhancement fields
   rag_explanation?: string;
   rag_enhanced?: boolean;
   rag_confidence?: number;
-  // Classifier fields
-  all_probabilities?: {
-    Low: number;
-    Medium: number;
-    High: number;
-  };
+  all_probabilities?: { Low: number; Medium: number; High: number };
   classifier_enhanced?: boolean;
+  slither_confidence?: string;
+  slither_impact?: string;
 }
 
 interface AnalysisResult {
@@ -44,40 +40,16 @@ interface AnalysisResult {
   timestamp: string;
   functions?: { name: string }[];
   vulnerabilities: Vulnerability[];
-  vulnerability_summary?: {
-    total: number;
-    by_severity: {
-      High: number;
-      Medium: number;
-      Low: number;
-    };
-  };
+  vulnerability_summary?: { total: number; by_severity: { High: number; Medium: number; Low: number } };
   report_content?: string;
-  contract_stats?: {
-    name: string;
-    inheritance?: string;
-  };
+  contract_stats?: { name: string; inheritance?: string };
   analysis?: {
     vulnerabilities: Vulnerability[];
     functions: { name: string }[];
-    vulnerability_summary?: {
-      total: number;
-      by_severity: {
-        High: number;
-        Medium: number;
-        Low: number;
-      };
-    };
+    vulnerability_summary?: { total: number; by_severity: { High: number; Medium: number; Low: number } };
   };
-  report?: {
-    report_content: string;
-  };
-  enhancement_stats?: {
-    total_vulnerabilities: number;
-    rag_enhanced: number;
-    classifier_enhanced: number;
-    enhancement_rate: number;
-  };
+  report?: { report_content: string };
+  enhancement_stats?: { total_vulnerabilities: number; rag_enhanced: number; classifier_enhanced: number; enhancement_rate: number };
 }
 
 export default function ReportPage() {
@@ -92,120 +64,79 @@ export default function ReportPage() {
       setError(null);
       try {
         const response = await fetch(`http://localhost:8000/api/analysis/${analysisId}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch report: ${response.statusText}`);
-        }
-        
+        if (!response.ok) throw new Error(`Failed to fetch report: ${response.statusText}`);
         const data = await response.json();
-        console.log("API Response:", data);
-        
-        // Check if vulnerabilities are in nested analysis object
+
         const vulnerabilities = data.analysis?.vulnerabilities || data.vulnerabilities || [];
         const functions = data.analysis?.functions || data.functions || [];
-        
-        // Get vulnerability summary from appropriate location
         let vulnSummary = data.vulnerability_summary || data.analysis?.vulnerability_summary;
-        
-        // If no summary exists, calculate it
+
         if (!vulnSummary) {
           const high = vulnerabilities.filter((v: any) => v.severity === "High").length;
           const medium = vulnerabilities.filter((v: any) => v.severity === "Medium").length;
           const low = vulnerabilities.filter((v: any) => v.severity === "Low").length;
-          vulnSummary = {
-            total: vulnerabilities.length,
-            by_severity: { High: high, Medium: medium, Low: low },
-          };
+          vulnSummary = { total: vulnerabilities.length, by_severity: { High: high, Medium: medium, Low: low } };
         }
-        
-        // Get report content from appropriate location
-        const reportContent = data.report_content || data.report?.report_content || "";
-        
-        // Create standardized result object
+
         const result: AnalysisResult = {
           contract_name: data.contract_name || data.contractName || data.contract_stats?.name || "Unknown Contract",
           contract_path: data.contract_path || "",
           timestamp: data.timestamp || new Date().toISOString(),
           functions: functions.map((fn: any) => ({ name: fn.name })),
-          vulnerabilities: vulnerabilities.map((v: any, index: number) => ({
-            id: v.id || `VULN-${index + 1}`,
-            type: v.type || "Unknown",
-            description: v.description || "",
-            location: v.location || (v.affectedFunctions ? v.affectedFunctions.join(", ") : "Unknown"),
-            severity: v.severity || getSeverity(v.type),
-            confidence: v.confidence || 0.8,
-            details: v.details || v.description,
-            recommendation: v.recommendation || getRecommendation(v.type),
-            affectedFunctions: v.affectedFunctions || [],
-            // RAG fields
-            rag_explanation: v.rag_explanation || "",
-            rag_enhanced: v.rag_enhanced || false,
-            rag_confidence: v.rag_confidence || 0,
-            // Classifier fields
-            all_probabilities: v.all_probabilities || null,
-            classifier_enhanced: v.classifier_enhanced || false,
-          })),
+          vulnerabilities: vulnerabilities.map((v: any, index: number) => {
+            // Clean up description by extracting key details
+            let cleanedDescription = v.description || "";
+            cleanedDescription = cleanedDescription.replace(/\(.*?\)/g, match => {
+              const parts = match.slice(1, -1).split('#');
+              return parts.length > 1 ? `#${parts[1]}` : match;
+            }).replace(/^[^\(]+\(/, '').replace(/\)$/, '');
+            return {
+              id: v.id || `VULN-${index + 1}`,
+              type: v.type || "Unknown",
+              description: cleanedDescription || v.description,
+              location: v.location || (v.affectedFunctions ? v.affectedFunctions.join(", ") : "Unknown"),
+              severity: v.severity || "Medium",
+              confidence: v.confidence || 0.5,
+              details: v.details || v.description,
+              recommendation: v.recommendation || "Review and apply best practices.",
+              affectedFunctions: v.affectedFunctions || [],
+              rag_explanation: v.rag_explanation || "",
+              rag_enhanced: v.rag_enhanced || false,
+              rag_confidence: v.rag_confidence || 0,
+              all_probabilities: v.all_probabilities || null,
+              classifier_enhanced: v.classifier_enhanced || false,
+              slither_confidence: v.slither_confidence || "Unknown",
+              slither_impact: v.slither_impact || "Unknown",
+            };
+          }),
           vulnerability_summary: vulnSummary,
-          report_content: reportContent,
+          report_content: data.report_content || data.report?.report_content || "",
           enhancement_stats: data.enhancement_stats || {
             total_vulnerabilities: vulnerabilities.length,
             rag_enhanced: vulnerabilities.filter((v: any) => v.rag_enhanced).length,
             classifier_enhanced: vulnerabilities.filter((v: any) => v.classifier_enhanced).length,
-            enhancement_rate: 0
-          }
+            enhancement_rate: 0,
+          },
         };
-        
+
         setReport(result);
       } catch (error) {
-        console.error("Error fetching report:", error);
-        setError("Failed to load the audit report. Please try again.");
-        setReport(null);
+        setError("Failed to load the audit report.");
       } finally {
         setLoading(false);
       }
     };
-    
-    if (analysisId) {
-      fetchReport();
-    }
+
+    if (analysisId) fetchReport();
   }, [analysisId]);
-
-  const getSeverity = (type: string): string => {
-    const typeLC = type.toLowerCase();
-    if (typeLC.includes("reentrancy") || typeLC.includes("overflow") || typeLC.includes("access control")) {
-      return "High";
-    } else if (typeLC.includes("unchecked") || typeLC.includes("timestamp") || typeLC.includes("version")) {
-      return "Medium";
-    }
-    return "Low";
-  };
-
-  const getRecommendation = (type: string): string => {
-    const typeLC = type.toLowerCase();
-    if (typeLC.includes("reentrancy")) {
-      return "Implement the checks-effects-interactions pattern and consider using ReentrancyGuard.";
-    } else if (typeLC.includes("unchecked")) {
-      return "Always check return values of external calls and handle failures appropriately.";
-    } else if (typeLC.includes("access control")) {
-      return "Implement proper access controls using modifiers like onlyOwner or role-based permissions.";
-    } else if (typeLC.includes("gas")) {
-      return "Optimize gas usage by avoiding loops with unbounded iterations and minimizing storage operations.";
-    } else if (typeLC.includes("timestamp")) {
-      return "Avoid relying on block.timestamp for critical timing decisions, as it can be manipulated by miners.";
-    } else if (typeLC.includes("version")) {
-      return "Update to a more recent and stable compiler version without known issues.";
-    } else if (typeLC.includes("low level") || typeLC.includes("call")) {
-      return "Consider using safer alternatives like transfer() or send(), or implement thorough checks when using low-level calls.";
-    }
-    return "Review the code and follow security best practices to address this issue.";
-  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[70vh]">
         <div className="flex flex-col items-center">
-          <div className="mb-4 h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <h3 className="text-xl font-medium mb-2">Generating Enhanced Audit Report</h3>
-          <p className="text-muted-foreground">Analyzing contract with AI enhancements...</p>
+          <div className="mb-4 h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <h3 className="text-xl font-semibold text-gray-800">Generating Audit Report</h3>
+          <p className="text-gray-600">Analyzing contract with AI enhancements...</p>
         </div>
       </div>
     );
@@ -214,17 +145,13 @@ export default function ReportPage() {
   if (error || !report) {
     return (
       <div className="container mx-auto py-10 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-card border rounded-lg p-8 text-center">
-            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Report Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              {error || "We couldn't find an audit report for the specified analysis ID."}
-            </p>
-            <Link to="/" className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">
-              Return to Home
-            </Link>
-          </div>
+        <div className="max-w-3xl mx-auto bg-white shadow-md rounded-lg p-8 text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Report Not Found</h2>
+          <p className="text-gray-600 mb-6">{error || "Unable to find the audit report."}</p>
+          <Link to="/" className="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Return to Home
+          </Link>
         </div>
       </div>
     );
@@ -234,302 +161,174 @@ export default function ReportPage() {
   const mediumVulnerabilities = report.vulnerabilities.filter((v) => v.severity === "Medium");
   const lowVulnerabilities = report.vulnerabilities.filter((v) => v.severity === "Low");
 
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case "High":
-        return <Flame className="h-5 w-5 text-red-500" />;
-      case "Medium":
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-      case "Low":
-        return <Info className="h-5 w-5 text-blue-500" />;
-      default:
-        return <Info className="h-5 w-5 text-blue-500" />;
-    }
-  };
-
   return (
-    <div className="container mx-auto py-10 px-4">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center mb-4 md:mb-0">
-            <Shield className="h-8 w-8 text-primary mr-3" />
-            <div>
-              <h1 className="text-3xl font-bold">Enhanced Audit Report</h1>
-              <p className="text-muted-foreground">{new Date(report.timestamp).toLocaleString()}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground flex items-center">
-              <Shield className="h-4 w-4 mr-1" />
-              <span>Dashboard</span>
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <div className="bg-white shadow-md rounded-lg p-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+            <Shield className="h-8 w-8 text-blue-500 mr-2" />
+            Smart Contract Security Audit Report
+          </h1>
+          <div className="flex space-x-2">
+            <Link to="/" className="text-gray-600 hover:text-blue-500 flex items-center text-sm">
+              <Shield className="h-4 w-4 mr-1" /> Dashboard
             </Link>
-            <span className="text-muted-foreground">•</span>
-            <button className="text-sm text-muted-foreground hover:text-foreground flex items-center">
-              <Download className="h-4 w-4 mr-1" />
-              <span>Download</span>
+            <span className="text-gray-600">•</span>
+            <button className="text-gray-600 hover:text-blue-500 flex items-center text-sm">
+              <Download className="h-4 w-4 mr-1" /> Download
             </button>
           </div>
         </div>
 
-        {/* Contract Info */}
-        <div className="bg-card border rounded-lg p-6 mb-8">
-          <div className="flex items-start">
-            <FileCode className="h-6 w-6 text-primary mr-4 mt-1" />
-            <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold mb-1">{report.contract_name}</h2>
-                  <p className="text-sm text-muted-foreground">{report.contract_path}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                <div className="bg-background p-4 rounded-md border">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Vulnerabilities</h3>
-                  <p className="text-2xl font-bold">{report.vulnerability_summary?.total || 0}</p>
-                </div>
-                <div className="bg-background p-4 rounded-md border">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Functions Analyzed</h3>
-                  <p className="text-2xl font-bold">{report.functions?.length || 0}</p>
-                </div>
-                <div className="bg-background p-4 rounded-md border">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">AI Enhanced</h3>
-                  <p className="text-2xl font-bold text-blue-600">{report.enhancement_stats?.rag_enhanced || 0}</p>
-                </div>
-                <div className="bg-background p-4 rounded-md border">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Enhancement Rate</h3>
-                  <p className="text-2xl font-bold text-green-600">
-                    {Math.round((report.enhancement_stats?.enhancement_rate || 0) * 100)}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Executive Summary */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Executive Summary</h2>
+          <p className="text-gray-600">
+            This audit analyzes <code className="bg-gray-100 px-1 rounded">{report.contract_name}</code>, identifying {report.vulnerability_summary?.total || 0} vulnerabilities, including {highVulnerabilities.length} high-severity issues. Immediate action is recommended.
+          </p>
+        </section>
 
-        {/* AI Enhancement Stats */}
-        {report.enhancement_stats && report.enhancement_stats.rag_enhanced > 0 && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-8">
-            <div className="flex items-center mb-4">
-              <MessageCircle className="h-6 w-6 text-blue-600 mr-3" />
-              <h2 className="text-xl font-semibold text-blue-800 dark:text-blue-200">AI Enhancement Summary</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{report.enhancement_stats.rag_enhanced}</div>
-                <div className="text-sm text-blue-700 dark:text-blue-300">RAG Enhanced</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{report.enhancement_stats.classifier_enhanced}</div>
-                <div className="text-sm text-green-700 dark:text-green-300">AI Classified</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {Math.round(report.enhancement_stats.enhancement_rate * 100)}%
-                </div>
-                <div className="text-sm text-purple-700 dark:text-purple-300">Enhancement Rate</div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Contract Information */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Contract Information</h2>
+          <ul className="list-disc list-inside text-gray-600 space-y-1">
+            <li><strong>Contract Name:</strong> {report.contract_name}</li>
+            <li><strong>Analysis Date:</strong> {new Date(report.timestamp).toISOString().split('T')[0]}</li>
+            <li><strong>Functions Analyzed:</strong> {report.functions?.length || 0}</li>
+          </ul>
+        </section>
 
-        {/* Vulnerabilities Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <AlertTriangle className="h-5 w-5 mr-2" />
-            Vulnerabilities
-          </h2>
+        {/* Methodology */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Methodology</h2>
+          <ul className="list-disc list-inside text-gray-600 space-y-1">
+            <li>Static analysis with Slither.</li>
+            <li>AI classification using DistilRoBERTa.</li>
+            <li>RAG-enhanced insights from a knowledge base.</li>
+            <li>Multi-layer security assessment.</li>
+          </ul>
+        </section>
+
+        {/* Vulnerability Summary */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Vulnerability Summary</h2>
+          <table className="w-full border-collapse mb-4">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left">Severity</th>
+                <th className="border p-2 text-left">Count</th>
+                <th className="border p-2 text-left">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border p-2"><span className="inline-block w-3 h-3 bg-red-500 rounded-full mr-1"></span> HIGH</td>
+                <td className="border p-2">{highVulnerabilities.length}</td>
+                <td className="border p-2">{highVulnerabilities.length > 0 ? "Critical risks detected." : "None"}</td>
+              </tr>
+              <tr>
+                <td className="border p-2"><span className="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> MEDIUM</td>
+                <td className="border p-2">{mediumVulnerabilities.length}</td>
+                <td className="border p-2">{mediumVulnerabilities.length > 0 ? "Moderate risks detected." : "None"}</td>
+              </tr>
+              <tr>
+                <td className="border p-2"><span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> LOW</td>
+                <td className="border p-2">{lowVulnerabilities.length}</td>
+                <td className="border p-2">{lowVulnerabilities.length > 0 ? "Low risks detected." : "None"}</td>
+              </tr>
+            </tbody>
+          </table>
+          {report.enhancement_stats && report.enhancement_stats.rag_enhanced > 0 && (
+            <div className="bg-blue-50 p-4 rounded border border-blue-200">
+              <p className="text-blue-800"><strong>AI Enhancements:</strong> {report.enhancement_stats.rag_enhanced} RAG, {report.enhancement_stats.classifier_enhanced} classified.</p>
+            </div>
+          )}
+        </section>
+
+        {/* Detailed Findings */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Detailed Findings</h2>
           {report.vulnerabilities.length === 0 ? (
-            <div className="bg-card border rounded-lg p-6 text-center">
-              <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-medium mb-2">No Vulnerabilities Found</h3>
-              <p className="text-muted-foreground">Great job! Your contract passed all security checks.</p>
+            <div className="bg-green-50 p-4 rounded border border-green-200 text-center">
+              <Check className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <p className="text-green-800">No vulnerabilities found.</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* High Severity */}
-              {highVulnerabilities.length > 0 && (
-                <VulnerabilitySection 
-                  vulnerabilities={highVulnerabilities} 
-                  severity="High" 
-                  color="red" 
-                  getSeverityIcon={getSeverityIcon}
-                />
-              )}
-              
-              {/* Medium Severity */}
-              {mediumVulnerabilities.length > 0 && (
-                <VulnerabilitySection 
-                  vulnerabilities={mediumVulnerabilities} 
-                  severity="Medium" 
-                  color="yellow" 
-                  getSeverityIcon={getSeverityIcon}
-                />
-              )}
-              
-              {/* Low Severity */}
-              {lowVulnerabilities.length > 0 && (
-                <VulnerabilitySection 
-                  vulnerabilities={lowVulnerabilities} 
-                  severity="Low" 
-                  color="blue" 
-                  getSeverityIcon={getSeverityIcon}
-                />
-              )}
-            </div>
+            <VulnerabilitySection vulnerabilities={report.vulnerabilities} />
           )}
-        </div>
+        </section>
 
-        {/* Functions Section */}
-        {report.functions && report.functions.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Code className="h-5 w-5 mr-2" />
-              Analyzed Functions
-            </h2>
-            <div className="bg-card border rounded-lg p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {report.functions.map((fn, index) => (
-                  <div key={index} className="p-3 bg-background rounded-md border">
-                    <code className="text-sm">{fn.name}</code>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Code Quality Assessment */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Code Quality Assessment</h2>
+          <p className="text-gray-600">
+            {report.contract_name} code quality needs improvement. {report.vulnerabilities.length > 0 ? "Issues like unsafe calls or outdated versions were found." : "No major issues, but follow best practices."}
+          </p>
+        </section>
 
-        {/* Best Practices Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <Lightbulb className="h-5 w-5 mr-2" />
-            Best Practices
-          </h2>
-          <div className="bg-card border rounded-lg p-6">
-            <div className="space-y-4">
-              <div className="flex items-start">
-                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mr-3 mt-0.5">
-                  <Check className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-medium mb-1">Implement Security Patterns</h4>
-                  <p className="text-muted-foreground">
-                    Follow established security patterns like Checks-Effects-Interactions, and use well-tested libraries like
-                    OpenZeppelin for common contract functionality.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mr-3 mt-0.5">
-                  <Check className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-medium mb-1">Comprehensive Testing</h4>
-                  <p className="text-muted-foreground">
-                    Develop thorough test suites that cover all edge cases and potential attack vectors. Use formal verification
-                    tools where possible.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mr-3 mt-0.5">
-                  <Check className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-medium mb-1">Gas Optimization</h4>
-                  <p className="text-muted-foreground">
-                    Optimize for gas usage without sacrificing security. Consider storage patterns, loop optimizations, and
-                    efficient data structures.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Recommendations */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Recommendations</h2>
+          <ol className="list-decimal list-inside text-gray-600 space-y-2">
+            <li>Fix high-severity issues with provided remediation steps.</li>
+            <li>Monitor for Solidity best practice updates.</li>
+            <li>Enhance error handling and conduct code reviews.</li>
+            <li>Use checks-effects-interactions pattern and update documentation.</li>
+          </ol>
+        </section>
 
-        {/* AI Analysis Report Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <MessageCircle className="h-5 w-5 mr-2" />
-            AI Analysis Report
-          </h2>
+        {/* AI Analysis Report */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">AI Analysis Report</h2>
           {report.report_content ? (
-            <div className="bg-card border rounded-lg p-6">
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: report.report_content
-                      .replace(/^# /gm, '<h1 class="text-2xl font-bold mb-4">')
-                      .replace(/^## /gm, '<h2 class="text-xl font-bold mt-6 mb-3">')
-                      .replace(/^### /gm, '<h3 class="text-lg font-bold mt-5 mb-2">')
-                      .replace(/^#### /gm, '<h4 class="text-md font-bold mt-4 mb-2">')
-                      .replace(/```([^`]+)```/gs, '<pre class="bg-background p-4 rounded-md my-4 overflow-x-auto"><code>$1</code></pre>')
-                      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-                      .replace(/🔴/g, '<span class="inline-block w-3 h-3 bg-red-500 rounded-full mr-1"></span>')
-                      .replace(/🟡/g, '<span class="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span>')
-                      .replace(/🟢/g, '<span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span>')
-                      .replace(/\n\n/g, '</p><p class="mb-4">')
-                  }}
-                />
-              </div>
-              <div className="mt-6 pt-4 border-t flex flex-col sm:flex-row gap-4 items-center sm:justify-end">
-                <Link
-                  to={`/chat/${analysisId}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90"
-                >
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Chat with AI Assistant
+            <div className="bg-white p-6 rounded-lg border">
+              <div className="prose max-w-none text-gray-600" dangerouslySetInnerHTML={{
+                __html: report.report_content
+                  .replace(/^# /, '<h2 class="text-xl font-bold mb-4">')
+                  .replace(/^## /, '<h3 class="text-lg font-bold mt-4 mb-2">')
+                  .replace(/```([^`]+)```/g, '<pre class="bg-gray-100 p-2 rounded mt-2 mb-2"><code>$1</code></pre>')
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                  .replace(/🔴/g, '<span class="inline-block w-3 h-3 bg-red-500 rounded-full mr-1"></span>')
+                  .replace(/🟡/g, '<span class="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span>')
+                  .replace(/🟢/g, '<span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span>')
+                  .replace(/\n\n/g, '</p><p class="mt-2">'),
+              }} />
+              <div className="mt-4 flex gap-4">
+                <Link to={`/chat/${analysisId}`} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                  <MessageCircle className="h-5 w-5 mr-2 inline" /> Chat with AI
                 </Link>
-                <Link
-                  to={`/insights/${analysisId}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center bg-secondary text-secondary-foreground px-6 py-3 rounded-md font-medium hover:bg-secondary/80"
-                >
-                  <Lightbulb className="mr-2 h-5 w-5" />
-                  View Developer Insights
+                <Link to={`/insights/${analysisId}`} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">
+                  <Lightbulb className="h-5 w-5 mr-2 inline" /> Developer Insights
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="bg-card border rounded-lg p-6">
-              <p className="text-muted-foreground mb-6">
-                Have questions about the vulnerabilities in your contract? Need guidance on implementing the recommended fixes?
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to={`/chat/${analysisId}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90"
-                >
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Chat with AI Assistant
+            <div className="bg-white p-6 rounded-lg border">
+              <p className="text-gray-600 mb-4">Need help with vulnerabilities or fixes?</p>
+              <div className="flex gap-4">
+                <Link to={`/chat/${analysisId}`} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                  <MessageCircle className="h-5 w-5 mr-2 inline" /> Chat with AI
                 </Link>
-                <Link
-                  to={`/insights/${analysisId}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center bg-secondary text-secondary-foreground px-6 py-3 rounded-md font-medium hover:bg-secondary/80"
-                >
-                  <Lightbulb className="mr-2 h-5 w-5" />
-                  View Developer Insights
+                <Link to={`/insights/${analysisId}`} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">
+                  <Lightbulb className="h-5 w-5 mr-2 inline" /> Developer Insights
                 </Link>
               </div>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Action Buttons */}
-        <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
-          <Link
-            to="/"
-            className="w-full md:w-auto inline-flex items-center justify-center bg-secondary text-secondary-foreground px-6 py-3 rounded-md font-medium hover:bg-secondary/80"
-          >
-            <Shield className="mr-2 h-5 w-5" />
-            Back to Dashboard
+        <div className="flex flex-wrap gap-4">
+          <Link to="/" className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 flex items-center">
+            <Shield className="h-5 w-5 mr-2" /> Back to Dashboard
           </Link>
-          <button className="w-full md:w-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-md font-medium hover:bg-primary/90">
-            <Download className="mr-2 h-5 w-5" />
-            Download Full Report
+          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center">
+            <Download className="h-5 w-5 mr-2" /> Download Full Report
           </button>
-          <button className="w-full md:w-auto inline-flex items-center justify-center bg-card border text-foreground px-6 py-3 rounded-md font-medium hover:bg-accent">
-            <Clock className="mr-2 h-5 w-5" />
-            Schedule Follow-Up Audit
+          <button className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 flex items-center">
+            <Clock className="h-5 w-5 mr-2" /> Schedule Follow-Up Audit
           </button>
         </div>
       </div>
@@ -537,120 +336,37 @@ export default function ReportPage() {
   );
 }
 
-// Enhanced VulnerabilitySection component with RAG support
-function VulnerabilitySection({ vulnerabilities, severity, color, getSeverityIcon }) {
+function VulnerabilitySection({ vulnerabilities }) {
   return (
-    <div>
-      <h3 className="text-lg font-medium mb-3 flex items-center">
-        <div className={`w-4 h-4 rounded-full bg-${color}-500 mr-2`}></div>
-        {severity} Severity Issues ({vulnerabilities.length})
-      </h3>
-      <div className="space-y-4">
-        {vulnerabilities.map((vuln, index) => (
-          <div key={vuln.id || index} className={`bg-card border border-l-4 border-l-${color}-500 rounded-lg overflow-hidden`}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold flex items-center">
-                  {getSeverityIcon(vuln.severity || severity)}
-                  <span className="ml-2">{vuln.type}</span>
-                </h4>
-                <div className="flex items-center gap-2">
-                  {/* RAG Enhancement Badge */}
-                  {vuln.rag_enhanced && (
-                    <div className="px-2 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-500 flex items-center">
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      AI Enhanced
-                    </div>
-                  )}
-                  <div className={`px-2 py-1 text-xs font-medium rounded-full bg-${color}-500/10 text-${color}-500`}>
-                    {vuln.confidence
-                      ? `${typeof vuln.confidence === "number"
-                          ? Math.round(vuln.confidence * 100)
-                          : Math.round(parseFloat(String(vuln.confidence)) * 100)}% Confidence`
-                      : `${severity} Severity`}
-                  </div>
-                </div>
+    <div className="space-y-6">
+      {vulnerabilities.map((vuln) => {
+        const severityColor = vuln.severity === "High" ? "red" : vuln.severity === "Medium" ? "yellow" : "green";
+        return (
+          <div key={vuln.id} className={`border-l-4 border-${severityColor}-500 bg-white shadow-sm rounded p-6`}>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">{vuln.id}: {vuln.type}</h3>
+            <p className="text-gray-600 mb-2"><strong>Severity:</strong> <span className={`inline-block w-3 h-3 bg-${severityColor}-500 rounded-full mr-1`}></span>{vuln.severity.toUpperCase()} (Confidence: {Math.round(vuln.confidence * 100)}%)</p>
+            <p className="text-gray-600 mb-2"><strong>Location:</strong> <code className="bg-gray-100 px-1 rounded">{vuln.location}</code></p>
+            <p className="text-gray-600 mb-2"><strong>Description:</strong> {vuln.description}</p>
+            {vuln.rag_explanation && vuln.rag_enhanced && (
+              <div className="mb-2">
+                <p className="text-gray-600"><strong>Technical Analysis (RAG):</strong></p>
+                <details className="text-gray-600">
+                  <summary className="cursor-pointer hover:text-blue-500">{vuln.rag_explanation.substring(0, 100)}...</summary>
+                  <p className="mt-2">{vuln.rag_explanation}</p>
+                </details>
               </div>
-              
-              {/* Basic Description */}
-              <p className="text-muted-foreground mb-4">{vuln.description}</p>
-              
-              {/* RAG Enhanced Explanation */}
-              {vuln.rag_explanation && vuln.rag_explanation !== "RAG enhancement unavailable" && (
-                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <MessageCircle className="h-4 w-4 text-blue-500 mr-2" />
-                    <h5 className="text-sm font-medium text-blue-700 dark:text-blue-300">AI Security Analysis</h5>
-                  </div>
-                  <div className="text-sm text-blue-800 dark:text-blue-200">
-                    {vuln.rag_explanation.length > 500 ? (
-                      <details className="cursor-pointer">
-                        <summary className="font-medium hover:text-blue-600">
-                          {vuln.rag_explanation.substring(0, 200)}... (Click to expand)
-                        </summary>
-                        <div className="mt-2 whitespace-pre-wrap">
-                          {vuln.rag_explanation}
-                        </div>
-                      </details>
-                    ) : (
-                      <div className="whitespace-pre-wrap">{vuln.rag_explanation}</div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Location */}
-              {vuln.location && (
-                <div className="mb-4">
-                  <h5 className="text-sm font-medium mb-1">Location</h5>
-                  <code className="px-2 py-1 bg-background rounded text-sm">{vuln.location}</code>
-                </div>
-              )}
-              
-              {/* Affected Functions */}
-              {vuln.affectedFunctions && vuln.affectedFunctions.length > 0 && (
-                <div className="mb-4">
-                  <h5 className="text-sm font-medium mb-1">Affected Functions</h5>
-                  <div className="flex flex-wrap gap-1">
-                    {vuln.affectedFunctions.map((func, idx) => (
-                      <code key={idx} className="px-2 py-1 bg-background rounded text-xs">
-                        {func}
-                      </code>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Recommendation */}
-              <div>
-                <h5 className="text-sm font-medium mb-1">Recommendation</h5>
-                <p className="text-sm text-muted-foreground">{vuln.recommendation}</p>
-              </div>
-              
-              {/* Confidence Score Details */}
-              {vuln.all_probabilities && (
-                <div className="mt-4 pt-4 border-t">
-                  <h5 className="text-sm font-medium mb-2">Confidence Breakdown</h5>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center">
-                      <div className="text-green-600">Low</div>
-                      <div className="font-mono">{Math.round((vuln.all_probabilities.Low || 0) * 100)}%</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-yellow-600">Medium</div>
-                      <div className="font-mono">{Math.round((vuln.all_probabilities.Medium || 0) * 100)}%</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-red-600">High</div>
-                      <div className="font-mono">{Math.round((vuln.all_probabilities.High || 0) * 100)}%</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
+            {vuln.slither_confidence && (
+              <p className="text-gray-600 mb-2"><strong>Slither:</strong> Confidence: {vuln.slither_confidence}, Impact: {vuln.slither_impact}</p>
+            )}
+            {vuln.all_probabilities && (
+              <p className="text-gray-600 mb-2"><strong>Classifier:</strong> Low: {Math.round(vuln.all_probabilities.Low * 100)}%, Medium: {Math.round(vuln.all_probabilities.Medium * 100)}%, High: {Math.round(vuln.all_probabilities.High * 100)}%</p>
+            )}
+            <p className="text-gray-600 mb-2"><strong>Impact:</strong> {vuln.severity === "High" ? "Potential fund loss." : "Moderate to low risk."}</p>
+            <p className="text-gray-600"><strong>Remediation:</strong> {vuln.recommendation}</p>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

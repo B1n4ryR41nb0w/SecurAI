@@ -12,20 +12,32 @@ export default function UploadPage() {
   }
   
   const handleSubmit = async () => {
-    if (!file) return
-    
-    setIsSubmitting(true)
-    
-    // Simulate API call
-    console.log("Uploading and analyzing file:", file.name)
-    
-    // In a real app, you would upload the file and get the analysis results
-    setTimeout(() => {
-      console.log("Analysis complete!")
-      setIsSubmitting(false)
+  if (!file) return
+  setIsSubmitting(true)
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
       // Navigate to results page
-    }, 2000)
+      window.location.href = `/report/${result.analysis_id}`
+    } else {
+      console.error('Upload failed:', result.error)
+    }
+  } catch (error) {
+    console.error('Upload error:', error)
+  } finally {
+    setIsSubmitting(false)
   }
+}
   
   return (
     <div className="container mx-auto py-10">

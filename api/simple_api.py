@@ -8,34 +8,35 @@ from typing import Dict, Any
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import tempfile
 from secura_agents.crew_manager import run_audit
 
 app = FastAPI()
 
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "secura-audit-agent"}
+
+# Serve frontend static files
+frontend_dist_path = Path("frontend/dist")
+if frontend_dist_path.exists():
+    # Mount assets directory for CSS, JS, etc.
+    assets_path = frontend_dist_path / "assets"
+    if assets_path.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
 
 # In-memory storage for analysis results
 analysis_results: Dict[str, Any] = {}
-
 
 def get_analysis_by_id(analysis_id: str) -> Dict[str, Any]:
     if analysis_id not in analysis_results:
         raise KeyError(f"Analysis not found: {analysis_id}")
     return analysis_results[analysis_id]
 
-
-# Import routes
-from routes import chat
-from routes import insights  # Your existing insights route
+from api.routes import chat
+from api.routes import insights
 
 # Set the analysis getter function in the modules
 chat.set_analysis_getter(get_analysis_by_id)
@@ -44,7 +45,6 @@ insights.set_analysis_getter(get_analysis_by_id)
 # Include the routers
 app.include_router(chat.router)
 app.include_router(insights.router)
-
 
 @app.post("/api/upload")
 async def upload_contract(file: UploadFile = File(...)):
@@ -61,7 +61,7 @@ async def upload_contract(file: UploadFile = File(...)):
 
         analysis_id = str(uuid.uuid4())
 
-        # Run full audit (this should now include insights if using the updated crew)
+        # Run full audit
         result = run_audit(str(temp_path))
 
         if "error" in result:
@@ -88,7 +88,6 @@ async def upload_contract(file: UploadFile = File(...)):
             "error": str(e)
         }
 
-
 @app.get("/api/analysis/{analysis_id}")
 async def get_analysis(analysis_id: str):
     """Get analysis results by ID."""
@@ -98,8 +97,7 @@ async def get_analysis(analysis_id: str):
     except KeyError:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-
-@app.get("/api/tests-analysis")
+@app.get("/api/test-analysis")
 async def test_analysis():
     """Run analysis on the built-in Vulnerable.sol file."""
     try:
@@ -112,7 +110,7 @@ async def test_analysis():
                 "error": f"Test contract not found at {test_contract}"
             }
 
-        analysis_id = "tests-analysis"
+        analysis_id = "test-analysis"
 
         # Run full audit
         result = run_audit(str(test_contract))
@@ -141,7 +139,24 @@ async def test_analysis():
         }
 
 
+@app.get("/")
+async def serve_frontend():
+    """Serve React frontend"""
+    index_file = frontend_dist_path / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+    else:
+        return {"message": "Frontend not found", "available_endpoints": ["/docs", "/health", "/api/upload"]}
+
+
+@app.get("/{path:path}")
+async def catch_all(path: str):
+    """Catch all routes and serve React app for SPA routing"""
+    index_file = frontend_dist_path / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+    raise HTTPException(status_code=404, detail="Page not found")
+
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,0 +1,12 @@
+fastapi==0.115.11
+uvicorn==0.34.0
+python-dotenv==1.0.1
+python-multipart==0.0.20
+pandas==2.2.3
+openai==1.65.3
+requests==2.32.3
+pydantic==2.10.6
+solc-select==1.0.4
+crewai==0.102.0
+slither-analyzer==0.11.0
+py-solc-x==1.1.1

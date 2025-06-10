@@ -58,7 +58,7 @@ export default function HomePage() {
       formData.append('file', file)
       
       // Upload file to API
-      const response = await fetch('http://localhost:8000/api/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       })
@@ -85,7 +85,7 @@ export default function HomePage() {
     
     try {
       // Call test analysis API
-      const response = await fetch('http://localhost:8000/api/test-analysis')
+      const response = await fetch('/api/test-analysis')
       const data = await response.json()
       
       if (data.success) {

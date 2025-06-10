@@ -46,6 +46,43 @@ interface AnalysisResult {
   enhancement_stats?: { total_vulnerabilities: number; rag_enhanced: number; classifier_enhanced: number; enhancement_rate: number };
 }
 
+function VulnerabilitySection({ vulnerabilities }: { vulnerabilities: Vulnerability[] }) {
+  return (
+    <div className="space-y-6">
+      {vulnerabilities.map((vuln: Vulnerability) => {
+        const severityColor = vuln.severity === "High" ? "red" : vuln.severity === "Medium" ? "yellow" : "green";
+        return (
+          <div key={vuln.id} className="border-l-4 border-gray-300 pl-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">{vuln.id}</h3>
+            <p className="text-gray-600 mb-1"><strong>Type:</strong> {vuln.type}</p>
+            <p className="text-gray-600 mb-1">
+              <strong>Severity:</strong>{" "}
+              <span className={`inline-block w-3 h-3 bg-${severityColor}-500 rounded-full mr-1`}></span>
+              {vuln.severity?.toUpperCase()} (Confidence: {Math.round((vuln.confidence || 0) * 100)}%)
+            </p>
+            <p className="text-gray-600 mb-1"><strong>Location:</strong> <code className="bg-gray-100 px-1 rounded text-sm">{vuln.location}</code></p>
+            <p className="text-gray-600 mb-1"><strong>Description:</strong> {vuln.description}</p>
+            {vuln.rag_explanation && vuln.rag_enhanced && (
+              <div className="mt-2">
+                <h4 className="text-md font-bold text-gray-800 mb-1">Technical Analysis:</h4>
+                <pre className="bg-gray-100 p-2 rounded text-sm font-mono text-gray-600 whitespace-pre-wrap">{vuln.rag_explanation}</pre>
+              </div>
+            )}
+            {vuln.slither_confidence && (
+              <p className="text-gray-600 mb-1"><strong>Slither Analysis:</strong> Confidence: {vuln.slither_confidence}, Impact: {vuln.slither_impact}</p>
+            )}
+            {vuln.all_probabilities && (
+              <p className="text-gray-600 mb-1"><strong>Classifier Probabilities:</strong> Low: {Math.round(vuln.all_probabilities.Low * 100)}%, Medium: {Math.round(vuln.all_probabilities.Medium * 100)}%, High: {Math.round(vuln.all_probabilities.High * 100)}%</p>
+            )}
+            <p className="text-gray-600 mb-1"><strong>Impact:</strong> {vuln.severity === "High" ? "Critical exploitation risk." : "Moderate to low risk."}</p>
+            <p className="text-gray-600"><strong>Remediation:</strong> {vuln.recommendation}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ReportPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
   const [loading, setLoading] = useState(true);
@@ -57,7 +94,7 @@ export default function ReportPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`http://localhost:8000/api/analysis/${analysisId}`);
+        const response = await fetch(`/api/analysis/${analysisId}`);
         if (!response.ok) throw new Error(`Failed to fetch report: ${response.statusText}`);
         const data = await response.json();
 
@@ -79,7 +116,7 @@ export default function ReportPage() {
           functions: functions.map((fn: any) => ({ name: fn.name })),
           vulnerabilities: vulnerabilities.map((v: any, index: number) => {
             let cleanedDescription = v.description || "";
-            cleanedDescription = cleanedDescription.replace(/\(.*?\)/g, match => {
+            cleanedDescription = cleanedDescription.replace(/\(.*?\)/g, (match: string) => {
               const parts = match.slice(1, -1).split('#');
               return parts.length > 1 ? `#${parts[1]}` : match;
             }).replace(/^[^\(]+\(/, '').replace(/\)$/, '');
@@ -267,7 +304,7 @@ export default function ReportPage() {
           </ol>
         </section>
 
-        {/* AI Analysis Summary (Repurposed) */}
+        {/* AI Analysis Summary */}
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-2 border-b border-gray-200 pb-2">AI Analysis Summary</h2>
           <p className="text-gray-600 mb-4">
@@ -296,43 +333,6 @@ export default function ReportPage() {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function VulnerabilitySection({ vulnerabilities }) {
-  return (
-    <div className="space-y-6">
-      {vulnerabilities.map((vuln) => {
-        const severityColor = vuln.severity === "High" ? "red" : vuln.severity === "Medium" ? "yellow" : "green";
-        return (
-          <div key={vuln.id} className="border-l-4 border-gray-300 pl-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">{vuln.id}</h3>
-            <p className="text-gray-600 mb-1"><strong>Type:</strong> {vuln.type}</p>
-            <p className="text-gray-600 mb-1">
-              <strong>Severity:</strong>{" "}
-              <span className={`inline-block w-3 h-3 bg-${severityColor}-500 rounded-full mr-1`}></span>
-              {vuln.severity.toUpperCase()} (Confidence: {Math.round(vuln.confidence * 100)}%)
-            </p>
-            <p className="text-gray-600 mb-1"><strong>Location:</strong> <code className="bg-gray-100 px-1 rounded text-sm">{vuln.location}</code></p>
-            <p className="text-gray-600 mb-1"><strong>Description:</strong> {vuln.description}</p>
-            {vuln.rag_explanation && vuln.rag_enhanced && (
-              <div className="mt-2">
-                <h4 className="text-md font-bold text-gray-800 mb-1">Technical Analysis:</h4>
-                <pre className="bg-gray-100 p-2 rounded text-sm font-mono text-gray-600 whitespace-pre-wrap">{vuln.rag_explanation}</pre>
-              </div>
-            )}
-            {vuln.slither_confidence && (
-              <p className="text-gray-600 mb-1"><strong>Slither Analysis:</strong> Confidence: {vuln.slither_confidence}, Impact: {vuln.slither_impact}</p>
-            )}
-            {vuln.all_probabilities && (
-              <p className="text-gray-600 mb-1"><strong>Classifier Probabilities:</strong> Low: {Math.round(vuln.all_probabilities.Low * 100)}%, Medium: {Math.round(vuln.all_probabilities.Medium * 100)}%, High: {Math.round(vuln.all_probabilities.High * 100)}%</p>
-            )}
-            <p className="text-gray-600 mb-1"><strong>Impact:</strong> {vuln.severity === "High" ? "Critical exploitation risk." : "Moderate to low risk."}</p>
-            <p className="text-gray-600"><strong>Remediation:</strong> {vuln.recommendation}</p>
-          </div>
-        );
-      })}
     </div>
   );
 }

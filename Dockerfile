@@ -15,13 +15,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --timeout=1000 --retries=5 --no-cache-dir -r requirements.txt
+RUN pip install --timeout=1000 --retries=5 --no-cache-dir -r requirements.txt
 
 RUN solc-select install 0.8.0 && \
     solc-select use 0.8.0 && \
     solc --version && \
-    echo "✅ Solidity 0.8.0 installed and activated"
+    echo "Solidity 0.8.0 installed and activated"
 
 COPY . .
 COPY --from=frontend-builder /frontend/dist ./frontend/dist

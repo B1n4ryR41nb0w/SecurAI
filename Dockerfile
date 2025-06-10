@@ -15,12 +15,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --timeout=1000 --retries=5 --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN solc-select install 0.8.0 && \
-    solc-select use 0.8.0 && \
-    solc --version && \
-    echo "Solidity 0.8.0 installed and activated"
+RUN solc-select install 0.8.0 && solc-select use 0.8.0
 
 COPY . .
 COPY --from=frontend-builder /frontend/dist ./frontend/dist
@@ -30,12 +27,7 @@ RUN mkdir -p /app/reports /app/logs
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
-ENV OPENAI_API_KEY=""
-ENV WEAVIATE_URL="http://localhost:8080"
 ENV SOLC_VERSION=0.8.0
-
-HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
 
 EXPOSE 8000
 

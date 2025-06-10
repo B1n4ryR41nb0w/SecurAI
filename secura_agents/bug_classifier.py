@@ -158,6 +158,12 @@ def classify_vulnerability(description, swc_id=None, title=None):
         dict: The classification result with severity and confidence
     """
     try:
+
+        if not (MODEL_OUTPUT_DIR / "pytorch_model.bin").exists() and not (
+                MODEL_OUTPUT_DIR / "model.safetensors").exists():
+            print("🏋️ No trained model found. Training model on first use...")
+            fine_tune_model()
+
         # Load the saved model and tokenizer
         model = RobertaForSequenceClassification.from_pretrained(MODEL_OUTPUT_DIR)
         tokenizer = RobertaTokenizer.from_pretrained(MODEL_OUTPUT_DIR)

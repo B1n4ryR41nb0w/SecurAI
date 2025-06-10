@@ -34,7 +34,7 @@ export default function ChatPage() {
       
       try {
         // First, get the analysis results
-        const analysisResponse = await fetch(`http://localhost:8000/api/analysis/${analysisId}`);
+        const analysisResponse = await fetch(`/api/analysis/${analysisId}`);
         
         if (!analysisResponse.ok) {
           throw new Error(`Failed to fetch analysis: ${analysisResponse.statusText}`);
@@ -43,7 +43,7 @@ export default function ChatPage() {
         const analysisData = await analysisResponse.json();
         
         // Create a chat session with the analysis context
-        const sessionResponse = await fetch('http://localhost:8000/api/chat/sessions', {
+        const sessionResponse = await fetch('/api/chat/sessions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export default function ChatPage() {
     
     try {
       // Send message to API
-      const response = await fetch(`http://localhost:8000/api/chat/${sessionId}/messages`, {
+      const response = await fetch(`/api/chat/${sessionId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

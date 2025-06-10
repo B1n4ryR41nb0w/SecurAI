@@ -38,7 +38,7 @@ export default function InsightsPage() {
       
       if (forceRegenerate) {
         // Force regeneration by calling POST directly
-        response = await fetch("http://localhost:8000/api/insights", {
+        response = await fetch("/api/insights", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -49,11 +49,11 @@ export default function InsightsPage() {
         });
       } else {
         // Try to get existing insights first
-        response = await fetch(`http://localhost:8000/api/insights/${analysisId}`);
+        response = await fetch(`/api/insights/${analysisId}`);
         
         // If not found, create new insights
         if (response.status === 404) {
-          response = await fetch("http://localhost:8000/api/insights", {
+          response = await fetch("/api/insights", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

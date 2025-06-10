@@ -61,17 +61,19 @@ class ReportGeneratorAgent(Agent):
 
         ANALYSIS ENHANCEMENTS:
         - RAG Enhanced Vulnerabilities: {analysis_metadata.get('rag_enhanced_count', 0)}
-        - Classifier Enhanced: {analysis_metadata.get('classifier_enhanced_count', 0)}
+        - Slither-Based Severity Assessment: {analysis_metadata.get('slither_based_severity', True)}
         - RAG System Available: {analysis_metadata.get('rag_enhanced', False)}
 
         DETAILED VULNERABILITY DATA:
         {json.dumps([{
             'type': v.get('type', 'Unknown'),
             'severity': v.get('severity', 'Medium'),
-            'confidence': v.get('confidence', 0.5),
+            'confidence': v.get('confidence', 0.8),
             'description': v.get('description', ''),
             'rag_explanation': v.get('rag_explanation', '')[:500] + '...' if v.get('rag_explanation', '') else 'N/A',
             'rag_enhanced': v.get('rag_enhanced', False),
+            'slither_confidence': v.get('slither_confidence', 'Unknown'),
+            'slither_impact': v.get('slither_impact', 'Unknown'),
             'location': v.get('location', 'Unknown'),
             'affected_functions': v.get('affectedFunctions', [])
         } for v in vulnerabilities], indent=2)}
@@ -93,9 +95,9 @@ class ReportGeneratorAgent(Agent):
 
         ## Methodology
         Explain the comprehensive analysis approach:
-        - Static analysis using Slither
-        - AI-powered vulnerability classification using DistilRoBERTa
-        - RAG-enhanced explanations from vulnerability knowledge base
+        - Static analysis using Slither for vulnerability detection
+        - Slither-based severity assessment using impact and confidence ratings
+        - RAG-enhanced explanations from vulnerability knowledge base (when available)
         - Multi-layer security assessment
 
         ## Vulnerability Summary
@@ -105,13 +107,13 @@ class ReportGeneratorAgent(Agent):
         For each vulnerability, provide:
         - **Vulnerability ID**: VULN-001, VULN-002, etc.
         - **Type**: The vulnerability category
-        - **Severity**: High/Medium/Low with confidence score
-        - **Location**: File and line if available
+        - **Severity**: High/Medium/Low (based on Slither impact assessment)
+        - **Location**: File and function if available
         - **Description**: Clear explanation of the issue
         - **Technical Analysis**: Detailed technical explanation (use RAG explanation if available)
         - **Impact Assessment**: Potential consequences
         - **Remediation**: Specific steps to fix the issue
-        - **References**: Links to relevant security resources
+        - **References**: Links to relevant security resources (SWC registry, etc.)
 
         ## Code Quality Assessment
         Assessment of overall code quality, best practices followed, and areas for improvement.
@@ -135,6 +137,7 @@ class ReportGeneratorAgent(Agent):
         - Make the report professional and suitable for stakeholders
         - Include actionable remediation steps
         - Leverage the RAG explanations to provide deeper technical insights
+        - Mention that severity assessment is based on Slither's static analysis
         - Do not include numerical security scores
         """
 
@@ -144,7 +147,7 @@ class ReportGeneratorAgent(Agent):
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system",
-                     "content": "You are an expert smart contract auditor creating detailed, professional audit reports with AI-enhanced vulnerability analysis."},
+                     "content": "You are an expert smart contract auditor creating detailed, professional audit reports with Slither-based static analysis and RAG-enhanced vulnerability explanations."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.2,  # Lower temperature for more consistent, professional output
@@ -167,7 +170,8 @@ class ReportGeneratorAgent(Agent):
                     "medium_severity": medium_severity,
                     "low_severity": low_severity,
                     "rag_enhanced_count": analysis_metadata.get("rag_enhanced_count", 0),
-                    "functions_analyzed": len(functions)
+                    "functions_analyzed": len(functions),
+                    "slither_based": analysis_metadata.get("slither_based_severity", True)
                 }
             }
 

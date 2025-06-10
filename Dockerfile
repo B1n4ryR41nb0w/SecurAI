@@ -29,6 +29,9 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 ENV SOLC_VERSION=0.8.0
 
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:$PORT/health || exit 1
+
 EXPOSE 8000
 
 CMD ["python", "-m", "uvicorn", "api.simple_api:app", "--host", "0.0.0.0", "--port", "8000"]
